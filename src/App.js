@@ -155,10 +155,10 @@ const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
 
-  // Theme and dark mode states with validation
+  // Default theme: blue if no saved value
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
-    return validThemes.includes(saved) ? saved : "saffron";
+    return validThemes.includes(saved) ? saved : "blue";
   });
 
   // DARK MODE ENABLED BY DEFAULT if no saved value
