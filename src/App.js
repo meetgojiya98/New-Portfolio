@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
-import * as THREE from "three";
 
 const navItems = [
   { label: "Home", id: "hero" },
@@ -41,125 +40,62 @@ const themeColors = {
   },
 };
 
-// Dots + Lines background component
-function DotsAndLines({ color }) {
-  const pointsCount = 120; // number of points
-  const maxDistance = 1.5; // max distance to draw a line between points
-  const positions = useRef(new Float32Array(pointsCount * 3)); // xyz for each point
-  const velocities = useRef(new Float32Array(pointsCount * 3)); // movement per axis for each point
-  const linePositions = useRef(null);
-  const pointsRef = useRef();
-  const linesRef = useRef();
-
-  // Initialize points positions and velocities once
-  useEffect(() => {
-    for (let i = 0; i < pointsCount; i++) {
-      positions.current[i * 3] = (Math.random() - 0.5) * 8;     // x
-      positions.current[i * 3 + 1] = (Math.random() - 0.5) * 8; // y
-      positions.current[i * 3 + 2] = (Math.random() - 0.5) * 8; // z
-
-      velocities.current[i * 3] = (Math.random() - 0.5) * 0.002;
-      velocities.current[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
-      velocities.current[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
-    }
-  }, [pointsCount]);
-
-  // Prepare line geometry buffer size: max lines = pointsCount * (pointsCount -1 ) / 2
-  // We'll dynamically update actual line count each frame
-  const maxLines = (pointsCount * (pointsCount - 1)) / 2;
-  if (!linePositions.current) {
-    linePositions.current = new Float32Array(maxLines * 3 * 2); // 2 points per line * 3 coords each
-  }
+// 3D Shapes
+function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
+  const mesh = useRef();
+  const [hovered, setHovered] = useState(false);
 
   useFrame(() => {
-    // Update point positions with velocities + simple bounds checking
-    for (let i = 0; i < pointsCount; i++) {
-      for (let axis = 0; axis < 3; axis++) {
-        positions.current[i * 3 + axis] += velocities.current[i * 3 + axis];
-        if (positions.current[i * 3 + axis] > 4) velocities.current[i * 3 + axis] *= -1;
-        else if (positions.current[i * 3 + axis] < -4) velocities.current[i * 3 + axis] *= -1;
-      }
-    }
-
-    // Update points geometry
-    if (pointsRef.current) {
-      pointsRef.current.geometry.attributes.position.array = positions.current;
-      pointsRef.current.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // Build line segments for pairs of points closer than maxDistance
-    let lineIndex = 0;
-    for (let i = 0; i < pointsCount; i++) {
-      for (let j = i + 1; j < pointsCount; j++) {
-        const dx = positions.current[i * 3] - positions.current[j * 3];
-        const dy = positions.current[i * 3 + 1] - positions.current[j * 3 + 1];
-        const dz = positions.current[i * 3 + 2] - positions.current[j * 3 + 2];
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < maxDistance) {
-          // Add line start (point i)
-          linePositions.current[lineIndex * 6] = positions.current[i * 3];
-          linePositions.current[lineIndex * 6 + 1] = positions.current[i * 3 + 1];
-          linePositions.current[lineIndex * 6 + 2] = positions.current[i * 3 + 2];
-          // Add line end (point j)
-          linePositions.current[lineIndex * 6 + 3] = positions.current[j * 3];
-          linePositions.current[lineIndex * 6 + 4] = positions.current[j * 3 + 1];
-          linePositions.current[lineIndex * 6 + 5] = positions.current[j * 3 + 2];
-          lineIndex++;
-        }
-      }
-    }
-
-    // Update line geometry draw range
-    if (linesRef.current) {
-      linesRef.current.geometry.setDrawRange(0, lineIndex * 2);
-      linesRef.current.geometry.attributes.position.array = linePositions.current;
-      linesRef.current.geometry.attributes.position.needsUpdate = true;
+    if (mesh.current) {
+      mesh.current.rotation.x += 0.01;
+      mesh.current.rotation.y += 0.013;
+      mesh.current.scale.lerp(
+        hovered ? [1.15, 1.15, 1.15] : [1, 1, 1],
+        0.1
+      );
     }
   });
 
   return (
-    <>
-      {/* Points */}
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={pointsCount}
-            array={positions.current}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          color={color}
-          size={0.05}
-          sizeAttenuation={true}
-          opacity={0.7}
-          transparent
-        />
-      </points>
+    <mesh
+      {...props}
+      ref={mesh}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      <torusKnotGeometry args={[1, 0.3, 150, 20]} />
+      <meshPhysicalMaterial
+        color={hovered ? colorHover : colorPrimary}
+        metalness={0.8}
+        roughness={0.1}
+        clearcoat={1}
+        clearcoatRoughness={0}
+      />
+    </mesh>
+  );
+}
 
-      {/* Lines */}
-      <lineSegments ref={linesRef}>
-        <bufferGeometry
-          attach="geometry"
-          setDrawRange={[0, 0]} // start with no lines, updated dynamically
-        >
-          <bufferAttribute
-            attach="attributes-position"
-            count={maxLines * 2}
-            array={linePositions.current}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial
-          color={color}
-          linewidth={1}
-          opacity={0.3}
-          transparent
-          toneMapped={false}
-        />
-      </lineSegments>
-    </>
+function RotatingIcosahedron({ color, ...props }) {
+  const mesh = useRef();
+
+  useFrame(() => {
+    if (mesh.current) {
+      mesh.current.rotation.x += 0.008;
+      mesh.current.rotation.y -= 0.01;
+    }
+  });
+
+  return (
+    <mesh {...props} ref={mesh}>
+      <icosahedronGeometry args={[1.3, 0]} />
+      <meshStandardMaterial
+        color={color}
+        metalness={0.9}
+        roughness={0.2}
+        emissive={color}
+        emissiveIntensity={0.3}
+      />
+    </mesh>
   );
 }
 
@@ -175,19 +111,35 @@ function Floating3DCanvas({ theme }) {
         height: "100vh",
         pointerEvents: "auto",
         zIndex: 1,
-        opacity: 0.8,
+        opacity: 0.7,
       }}
-      camera={{ position: [0, 0, 7], fov: 50 }}
-      gl={{ antialias: true, toneMappingExposure: 1.2 }}
+      camera={{ position: [5, 5, 6], fov: 50 }}
+      gl={{ antialias: true, toneMappingExposure: 1.5 }}
     >
       <ambientLight intensity={0.4} />
-      <directionalLight position={[0, 10, 0]} intensity={0.8} />
+      <directionalLight position={[0, 10, 5]} intensity={1} />
+      <pointLight position={[10, 10, 10]} intensity={0.7} />
       <Suspense fallback={null}>
-        <DotsAndLines color={colors.particlesColor} />
+        <RotatingTorusKnot
+          position={[-2, 0, 0]}
+          colorPrimary={colors.threeColor1}
+          colorHover={colors.threeColor2}
+        />
+        <RotatingIcosahedron color={colors.threeColor2} position={[2, 0, 0]} />
+        <Stars
+          radius={100}
+          depth={50}
+          count={500}
+          factor={5}
+          saturation={50}
+          fade
+          speed={1}
+          color={colors.particlesColor}
+        />
       </Suspense>
       <OrbitControls
         autoRotate
-        autoRotateSpeed={0.3}
+        autoRotateSpeed={1.5}
         enableZoom={false}
         enablePan={false}
       />
@@ -319,7 +271,7 @@ export default function App() {
     "Java",
     "AWS",
     "OpenAI & AI Integration",
-    "Selenium",
+    "Selenium"
   ];
 
   const [currentProject, setCurrentProject] = useState(0);
@@ -426,7 +378,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
         {/* Hero */}
         <section
@@ -484,30 +435,15 @@ export default function App() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-lg max-w-3xl mx-auto leading-relaxed text-justify"
           >
-            <p>
-              Meet Gojiya is a Solution Analyst on the Product Engineering and Development team, within the Engineering,
-              AI, and Data offering at Deloitte Canada. Meet has the ability to link business with technology to extract
-              insights from complex data and build data-driven solutions.
-            </p>
+            <p>Meet Gojiya is a Solution Analyst on the Product Engineering and Development team, within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the ability to link business with technology to extract insights from complex data and build data-driven solutions.</p>
             <br />
-            <p>
-              Meet is a graduate of the University of New Brunswick, where he earned a Master of Computer Science degree.
-              He also holds a Bachelor’s degree in Computer Engineering from Gujarat Technological University. Meet is
-              driven by technology innovation, advanced analytics, adaptability, collaboration, and creativity, ultimately
-              furthering his career as well as those around him. He possesses a strong entrepreneurial spirit, which fuels
-              his passion for creating impactful solutions and driving positive change within the industry and the world.
-            </p>
+            <p>Meet is a graduate of the University of New Brunswick, where he earned a Master of Computer Science degree. He also holds a Bachelor’s degree in Computer Engineering from Gujarat Technological University. Meet is driven by technology innovation, advanced analytics, adaptability, collaboration, and creativity, ultimately furthering his career as well as those around him. He possesses a strong entrepreneurial spirit, which fuels his passion for creating impactful solutions and driving positive change within the industry and the world.</p>
             <br />
-            <p>
-              An avid learner and active listener, Meet thrives on absorbing knowledge from as many people as possible,
-              recognizing that every interaction is an opportunity to gain new insights and perspectives. His extremely
-              curious personality propels him to explore new ideas, question existing paradigms, and continuously seek out
-              opportunities for learning and growth.
-            </p>
+            <p>An avid learner and active listener, Meet thrives on absorbing knowledge from as many people as possible, recognizing that every interaction is an opportunity to gain new insights and perspectives. His extremely curious personality propels him to explore new ideas, question existing paradigms, and continuously seek out opportunities for learning and growth.</p>
           </motion.p>
         </section>
 
-        {/* Skills Section */}
+        {/* Skills */}
         <section
           id="skills"
           className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
@@ -540,7 +476,7 @@ export default function App() {
           </motion.div>
         </section>
 
-        {/* Projects Section */}
+        {/* Projects Carousel */}
         <section
           id="projects"
           className="max-w-5xl mx-auto px-4 space-y-8 text-center relative z-10"
@@ -610,7 +546,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* Contact Section */}
+        {/* Contact */}
         <section
           id="contact"
           className="max-w-xl mx-auto px-4 text-center space-y-6 relative z-10"
@@ -692,7 +628,11 @@ export default function App() {
             className="hover:text-current transition"
             style={{ color: colors.primary }}
           >
-            <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+            <svg
+              fill="currentColor"
+              className="w-5 h-5"
+              viewBox="0 0 24 24"
+            >
               <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
             </svg>
           </a>
@@ -704,7 +644,11 @@ export default function App() {
             className="hover:text-current transition"
             style={{ color: colors.primary }}
           >
-            <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+            <svg
+              fill="currentColor"
+              className="w-5 h-5"
+              viewBox="0 0 24 24"
+            >
               <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
             </svg>
           </a>
@@ -713,7 +657,7 @@ export default function App() {
 
       {/* Floating Resume Download Button */}
       <a
-        href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
+        href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing" // update with your resume file location
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
