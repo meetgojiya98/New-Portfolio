@@ -1,9 +1,24 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import {
+  OrbitControls,
+  Stars,
+  Environment,
+  ContactShadows,
+  Html,
+  useGLTF,
+} from "@react-three/drei";
+import {
+  EffectComposer,
+  Bloom,
+  DepthOfField,
+  Vignette,
+  Noise,
+} from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
+import * as THREE from "three";
 import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
-import * as THREE from "three"; // Added for proper lerp use
 
 const navItems = [
   { label: "Home", id: "hero" },
@@ -13,7 +28,6 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-// Define your theme colors
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
@@ -41,19 +55,21 @@ const themeColors = {
   },
 };
 
-// 3D Shapes
-function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
+// Fancy TorusKnot with glassy material and subtle hover pulsation
+function FancyTorusKnot({ ...props }) {
   const mesh = useRef();
-  const [hovered, setHovered] = useState(false);
+  const hoverRef = useRef(false);
 
-  useFrame(() => {
-    if (mesh.current) {
-      mesh.current.rotation.x += 0.01;
-      mesh.current.rotation.y += 0.013;
-      const targetScale = hovered
-        ? new THREE.Vector3(1.15, 1.15, 1.15)
-        : new THREE.Vector3(1, 1, 1);
-      mesh.current.scale.lerp(targetScale, 0.1);
+  useFrame(({ clock }) => {
+    if (!mesh.current) return;
+    mesh.current.rotation.x += 0.005;
+    mesh.current.rotation.y += 0.007;
+
+    if (hoverRef.current) {
+      const scale = 1 + 0.15 * Math.sin(clock.elapsedTime * 5);
+      mesh.current.scale.set(scale, scale, scale);
+    } else {
+      mesh.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
     }
   });
 
@@ -61,49 +77,77 @@ function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
     <mesh
       {...props}
       ref={mesh}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
+      onPointerOver={() => (hoverRef.current = true)}
+      onPointerOut={() => (hoverRef.current = false)}
+      castShadow
+      receiveShadow
     >
-      <torusKnotGeometry args={[1, 0.3, 150, 20]} />
+      <torusKnotGeometry args={[1, 0.3, 256, 32]} />
       <meshPhysicalMaterial
-        color={hovered ? colorHover : colorPrimary}
-        metalness={0.8}
-        roughness={0.1}
         clearcoat={1}
         clearcoatRoughness={0}
+        metalness={0.9}
+        roughness={0.05}
+        color="#f59e0b"
+        reflectivity={1}
+        transmission={0.4} // glass effect
+        thickness={1.5}
+        anisotropy={1}
       />
     </mesh>
   );
 }
 
-function RotatingIcosahedron({ color, ...props }) {
+// Pulsing icosahedron with subtle vertex noise animation
+function PulsingIcosahedron({ ...props }) {
   const mesh = useRef();
+  const tempVerts = useRef();
 
-  useFrame(() => {
-    if (mesh.current) {
-      mesh.current.rotation.x += 0.008;
-      mesh.current.rotation.y -= 0.01;
+  useFrame(({ clock }) => {
+    if (!mesh.current) return;
+
+    mesh.current.rotation.x += 0.003;
+    mesh.current.rotation.y -= 0.004;
+
+    // Pulsing emissive intensity
+    mesh.current.material.emissiveIntensity = 0.3 + 0.2 * Math.sin(clock.elapsedTime * 4);
+
+    // Vertex noise animation
+    if (!tempVerts.current) {
+      tempVerts.current = mesh.current.geometry.attributes.position.array.slice();
     }
+    const positions = mesh.current.geometry.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i] = tempVerts.current[i] + 0.05 * Math.sin(clock.elapsedTime * 5 + i);
+      positions[i + 1] = tempVerts.current[i + 1] + 0.05 * Math.cos(clock.elapsedTime * 4 + i);
+      positions[i + 2] = tempVerts.current[i + 2] + 0.05 * Math.sin(clock.elapsedTime * 3 + i);
+    }
+    mesh.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <mesh {...props} ref={mesh}>
+    <mesh {...props} ref={mesh} castShadow receiveShadow>
       <icosahedronGeometry args={[1.3, 0]} />
       <meshStandardMaterial
-        color={color}
-        metalness={0.9}
-        roughness={0.2}
-        emissive={color}
+        color="#8b5cf6"
+        metalness={0.8}
+        roughness={0.15}
+        emissive="#7c3aed"
         emissiveIntensity={0.3}
+        transparent
+        opacity={0.9}
       />
     </mesh>
   );
 }
 
-function Floating3DCanvas({ theme }) {
+// Advanced 3D Canvas with shadows, environment, postprocessing, and nice lighting
+function AdvancedFloating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
+
   return (
     <Canvas
+      shadows
       style={{
         position: "fixed",
         top: 0,
@@ -112,43 +156,89 @@ function Floating3DCanvas({ theme }) {
         height: "100vh",
         pointerEvents: "auto",
         zIndex: 1,
-        opacity: 0.7,
+        opacity: 0.85,
       }}
-      camera={{ position: [5, 5, 6], fov: 50 }}
-      gl={{ antialias: true, toneMappingExposure: 1.5 }}
+      camera={{ position: [7, 7, 9], fov: 55 }}
+      gl={{ antialias: true, toneMappingExposure: 1.2, physicallyCorrectLights: true }}
     >
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[0, 10, 5]} intensity={1} />
+      {/* Lighting */}
+      <ambientLight intensity={0.25} />
+      <directionalLight
+        castShadow
+        position={[5, 10, 5]}
+        intensity={1.2}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={1}
+        shadow-camera-far={20}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
       <pointLight position={[10, 10, 10]} intensity={0.7} />
-      <Suspense fallback={null}>
-        <RotatingTorusKnot
-          position={[-2, 0, 0]}
-          colorPrimary={colors.threeColor1}
-          colorHover={colors.threeColor2}
-        />
-        <RotatingIcosahedron color={colors.threeColor2} position={[2, 0, 0]} />
-        <Stars
-          radius={100}
-          depth={50}
-          count={500}
-          factor={5}
-          saturation={50}
-          fade
-          speed={1}
-          color={colors.particlesColor}
-        />
+
+      {/* Environment & shadows */}
+      <Environment
+        background={false}
+        preset="sunset"
+        blur={0.8}
+        resolution={256}
+      />
+      <ContactShadows
+        rotation-x={Math.PI / 2}
+        position={[0, -1.4, 0]}
+        opacity={0.4}
+        width={10}
+        height={10}
+        blur={2}
+        far={4}
+      />
+
+      <Suspense fallback={<Html center>Loading 3D...</Html>}>
+        <FancyTorusKnot position={[-2, 0, 0]} />
+        <PulsingIcosahedron position={[2, 0, 0]} />
       </Suspense>
+
+      {/* Particles */}
+      <Stars
+        radius={120}
+        depth={70}
+        count={700}
+        factor={8}
+        saturation={70}
+        fade
+        speed={1.5}
+        color={colors.particlesColor}
+      />
+
+      {/* Controls */}
       <OrbitControls
         autoRotate
-        autoRotateSpeed={1.5}
+        autoRotateSpeed={1.3}
         enableZoom={false}
         enablePan={false}
       />
+
+      {/* Postprocessing */}
+      <EffectComposer>
+        <Bloom
+          luminanceThreshold={0.15}
+          luminanceSmoothing={0.9}
+          height={300}
+          intensity={1.2}
+          kernelSize={5}
+          mipmapBlur
+        />
+        <DepthOfField focusDistance={0} focalLength={0.02} bokehScale={3} height={480} />
+        <Noise opacity={0.02} />
+        <Vignette eskil={false} offset={0.1} darkness={0.9} />
+      </EffectComposer>
     </Canvas>
   );
 }
 
-// Replace these with your EmailJS credentials
+// EmailJS config (replace with your own!)
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
@@ -156,18 +246,18 @@ const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
 
-  // Theme and dark mode states with validation
+  // Theme & dark mode default ON if no saved preference
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
     return validThemes.includes(saved) ? saved : "saffron";
   });
 
-  // Default dark mode ON if not previously saved
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     return saved === null ? true : saved === "true";
   });
 
+  // Other states & refs
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
@@ -271,7 +361,7 @@ export default function App() {
     "Java",
     "AWS",
     "OpenAI & AI Integration",
-    "Selenium"
+    "Selenium",
   ];
 
   const [currentProject, setCurrentProject] = useState(0);
@@ -284,7 +374,6 @@ export default function App() {
     return () => clearTimeout(projectTimeout.current);
   }, [currentProject]);
 
-  // Cycle theme colors on button press
   const cycleTheme = () => {
     const currentIndex = validThemes.indexOf(theme);
     setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
@@ -297,8 +386,8 @@ export default function App() {
       className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
       style={{ paddingBottom: "90px" }}
     >
-      {/* Floating 3D Canvas Background */}
-      <Floating3DCanvas theme={theme} />
+      {/* Advanced 3D Canvas Background */}
+      <AdvancedFloating3DCanvas theme={theme} />
 
       {/* Scroll Progress Bar */}
       <div
@@ -378,7 +467,49 @@ export default function App() {
         </div>
       </nav>
 
-      {/* ... rest of your component unchanged ... */}
+      {/* Main content sections ... */}
+      <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
+        {/* Hero Section */}
+        <section
+          id="hero"
+          className="min-h-screen flex flex-col justify-center items-center text-center space-y-8 relative z-10"
+        >
+          <motion.h1
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 1.2 }}
+            className="text-6xl font-extrabold tracking-tight"
+            style={{ color: colors.primary }}
+          >
+            Meet Gojiya
+          </motion.h1>
+          <motion.p
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 1.5 }}
+            className="max-w-xl text-lg md:text-xl"
+          >
+            Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
+            experiences.
+          </motion.p>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => scrollTo("projects")}
+            className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
+            style={{ backgroundColor: colors.primary }}
+          >
+            See My Work
+          </motion.button>
+        </section>
+
+        {/* Other sections like About Me, Skills, Projects, Contact ... */}
+        {/* (Keep these unchanged from your original code) */}
+        {/* Feel free to paste your existing sections here */}
+      </main>
+
+      {/* Footer and Resume Button remain unchanged */}
+      {/* (Keep these unchanged from your original code) */}
     </div>
   );
 }
