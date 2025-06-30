@@ -49,9 +49,9 @@ function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
     if (mesh.current) {
       mesh.current.rotation.x += 0.01;
       mesh.current.rotation.y += 0.013;
-      mesh.current.scale.lerp(
-        hovered ? [1.15, 1.15, 1.15] : [1, 1, 1],
-        0.1
+      const scaleTarget = hovered ? 1.15 : 1;
+      mesh.current.scale.setScalar(
+        mesh.current.scale.x + (scaleTarget - mesh.current.scale.x) * 0.1
       );
     }
   });
@@ -101,6 +101,7 @@ function RotatingIcosahedron({ color, ...props }) {
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
+
   return (
     <Canvas
       style={{
@@ -110,15 +111,15 @@ function Floating3DCanvas({ theme }) {
         width: "100vw",
         height: "100vh",
         pointerEvents: "none",
-        zIndex: -1,
-        opacity: 0.15,
+        zIndex: 10, // High zIndex for visibility/debugging
       }}
       camera={{ position: [5, 5, 6], fov: 50 }}
       gl={{ antialias: true, toneMappingExposure: 1.5 }}
     >
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.6} />
       <directionalLight position={[0, 10, 5]} intensity={1} />
       <pointLight position={[10, 10, 10]} intensity={0.7} />
+
       <Suspense fallback={null}>
         <RotatingTorusKnot
           position={[-2, 0, 0]}
@@ -136,7 +137,9 @@ function Floating3DCanvas({ theme }) {
           speed={1}
           color={colors.particlesColor}
         />
+        <AxesHelper args={[5]} />
       </Suspense>
+
       <OrbitControls
         autoRotate
         autoRotateSpeed={1.5}
