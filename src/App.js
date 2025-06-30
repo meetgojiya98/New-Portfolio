@@ -109,9 +109,9 @@ function Floating3DCanvas({ theme }) {
         left: 0,
         width: "100vw",
         height: "100vh",
-        pointerEvents: "none",
-        zIndex: -1,
-        opacity: 0.15,
+        pointerEvents: "auto",
+        zIndex: 1,
+        opacity: 1,
       }}
       camera={{ position: [5, 5, 6], fov: 50 }}
       gl={{ antialias: true, toneMappingExposure: 1.5 }}
