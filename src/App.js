@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
+import * as THREE from "three";
 
 const navItems = [
   { label: "Home", id: "hero" },
@@ -40,67 +41,56 @@ const themeColors = {
   },
 };
 
-// 3D Shapes
-function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
+// Morphing Blob component using vertex displacement
+function MorphingBlob({ color1, color2, position }) {
   const mesh = useRef();
-  const [hovered, setHovered] = useState(false);
+  const [geometry, setGeometry] = useState();
 
-  useFrame(() => {
+  useEffect(() => {
+    const geo = new THREE.SphereGeometry(1.5, 64, 64);
+    setGeometry(geo);
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!geometry) return;
+    const time = clock.getElapsedTime();
+    const positionAttr = geometry.attributes.position;
+    for (let i = 0; i < positionAttr.count; i++) {
+      const ox = positionAttr.getX(i);
+      const oy = positionAttr.getY(i);
+      const oz = positionAttr.getZ(i);
+
+      const offset = 0.2 * Math.sin(time * 3 + ox * 5 + oy * 5 + oz * 5);
+      positionAttr.setXYZ(i, ox + ox * offset, oy + oy * offset, oz + oz * offset);
+    }
+    positionAttr.needsUpdate = true;
+
     if (mesh.current) {
-      mesh.current.rotation.x += 0.01;
-      mesh.current.rotation.y += 0.013;
-      mesh.current.scale.lerp(
-        hovered ? [1.15, 1.15, 1.15] : [1, 1, 1],
-        0.1
-      );
+      mesh.current.rotation.x += 0.002;
+      mesh.current.rotation.y += 0.004;
     }
   });
 
   return (
-    <mesh
-      {...props}
-      ref={mesh}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
-    >
-      <torusKnotGeometry args={[1, 0.3, 150, 20]} />
-      <meshPhysicalMaterial
-        color={hovered ? colorHover : colorPrimary}
-        metalness={0.8}
-        roughness={0.1}
-        clearcoat={1}
-        clearcoatRoughness={0}
-      />
-    </mesh>
-  );
-}
-
-function RotatingIcosahedron({ color, ...props }) {
-  const mesh = useRef();
-
-  useFrame(() => {
-    if (mesh.current) {
-      mesh.current.rotation.x += 0.008;
-      mesh.current.rotation.y -= 0.01;
-    }
-  });
-
-  return (
-    <mesh {...props} ref={mesh}>
-      <icosahedronGeometry args={[1.3, 0]} />
-      <meshStandardMaterial
-        color={color}
-        metalness={0.9}
-        roughness={0.2}
-        emissive={color}
-        emissiveIntensity={0.3}
-      />
-    </mesh>
+    geometry && (
+      <mesh ref={mesh} geometry={geometry} position={position}>
+        <meshStandardMaterial
+          color={color1}
+          emissive={color2}
+          emissiveIntensity={0.6}
+          roughness={0.1}
+          metalness={0.8}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+    )
   );
 }
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
+
   return (
     <Canvas
       style={{
@@ -111,35 +101,34 @@ function Floating3DCanvas({ theme }) {
         height: "100vh",
         pointerEvents: "auto",
         zIndex: 1,
-        opacity: 0.7,
+        opacity: 0.75,
       }}
-      camera={{ position: [5, 5, 6], fov: 50 }}
-      gl={{ antialias: true, toneMappingExposure: 1.5 }}
+      camera={{ position: [4, 4, 5], fov: 50 }}
+      gl={{ antialias: true, toneMappingExposure: 1.2 }}
     >
       <ambientLight intensity={0.4} />
-      <directionalLight position={[0, 10, 5]} intensity={1} />
-      <pointLight position={[10, 10, 10]} intensity={0.7} />
+      <directionalLight position={[5, 10, 7]} intensity={0.8} />
+      <pointLight position={[-10, -10, -10]} intensity={0.3} />
       <Suspense fallback={null}>
-        <RotatingTorusKnot
-          position={[-2, 0, 0]}
-          colorPrimary={colors.threeColor1}
-          colorHover={colors.threeColor2}
+        <MorphingBlob
+          position={[0, 0, 0]}
+          color1={colors.threeColor1}
+          color2={colors.threeColor2}
         />
-        <RotatingIcosahedron color={colors.threeColor2} position={[2, 0, 0]} />
         <Stars
           radius={100}
           depth={50}
-          count={500}
+          count={300}
           factor={5}
           saturation={50}
           fade
-          speed={1}
+          speed={0.6}
           color={colors.particlesColor}
         />
       </Suspense>
       <OrbitControls
         autoRotate
-        autoRotateSpeed={1.5}
+        autoRotateSpeed={0.8}
         enableZoom={false}
         enablePan={false}
       />
@@ -209,8 +198,7 @@ export default function App() {
     const el = document.getElementById(id);
     if (!el) return;
     const yOffset = -80;
-    const y =
-      el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
   };
 
