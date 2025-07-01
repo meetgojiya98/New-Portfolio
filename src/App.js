@@ -71,11 +71,11 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive Particles with mobile adjustments
-function InteractiveParticles({ color, isMobile }) {
+// Interactive Particles
+function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
-  const PARTICLE_COUNT = isMobile ? 40 : 100; // reduce on mobile
+  const PARTICLE_COUNT = window.innerWidth < 640 ? 50 : 100; // fewer particles on small screens
   const PARTICLE_DISTANCE = 1.7;
   const positions = useRef([]);
   const velocities = useRef([]);
@@ -110,12 +110,10 @@ function InteractiveParticles({ color, isMobile }) {
         p[axis] += v[axis];
       }
 
-      // Bounce boundaries bigger for full viewport + margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Mouse repulsion smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -127,7 +125,6 @@ function InteractiveParticles({ color, isMobile }) {
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -138,7 +135,6 @@ function InteractiveParticles({ color, isMobile }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -199,11 +195,13 @@ function InteractiveParticles({ color, isMobile }) {
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
-
-  // detect mobile to adjust particles and controls
   const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-    setIsMobile(window.innerWidth <= 768);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   return (
@@ -217,7 +215,6 @@ function Floating3DCanvas({ theme }) {
         pointerEvents: "auto",
         zIndex: 1,
         opacity: 0.8,
-        transition: "opacity 0.4s ease",
       }}
       camera={{ position: [0, 0, 12], fov: 65 }}
       gl={{ antialias: true, toneMappingExposure: 1.5 }}
@@ -226,7 +223,7 @@ function Floating3DCanvas({ theme }) {
       <directionalLight position={[5, 5, 5]} intensity={0.8} />
       <pointLight position={[-5, -5, 5]} intensity={0.5} />
       <Suspense fallback={null}>
-        <InteractiveParticles color={colors.particlesColor} isMobile={isMobile} />
+        <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
       <OrbitControls
@@ -237,26 +234,6 @@ function Floating3DCanvas({ theme }) {
       />
     </Canvas>
   );
-}
-
-// Back To Top Button
-function BackToTop() {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 300);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  return visible ? (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      aria-label="Back to top"
-      className="fixed bottom-8 right-8 bg-[var(--color-primary)] p-3 rounded-full shadow-lg text-white hover:bg-[var(--color-primary-dark)] transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-      style={{ zIndex: 9999 }}
-    >
-      ↑
-    </button>
-  ) : null;
 }
 
 function ScrollIndicator({ onClick }) {
@@ -289,7 +266,6 @@ function ScrollIndicator({ onClick }) {
   );
 }
 
-// Section with fade-in on scroll
 function SectionReveal({ id, colors, title, children }) {
   const controls = useAnimation();
   const ref = useRef();
@@ -316,14 +292,36 @@ function SectionReveal({ id, colors, title, children }) {
       animate={controls}
       className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
     >
-      <motion.h2
-        className="text-4xl font-bold"
-        style={{ color: colors.primary, transition: "color 0.4s ease" }}
-      >
+      <motion.h2 className="text-4xl font-bold" style={{ color: colors.primary }}>
         {title}
       </motion.h2>
       <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">{children}</div>
     </motion.section>
+  );
+}
+
+function BackToTop() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Back to top"
+      className="back-to-top fixed bottom-24 right-6 p-3 rounded-full bg-[var(--color-primary)] text-white shadow-lg transition focus:outline-none"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && window.scrollTo({ top: 0, behavior: "smooth" })}
+      style={{fontSize: "1.5rem", lineHeight: 1}}
+    >
+      ↑
+    </button>
   );
 }
 
@@ -344,15 +342,13 @@ export default function App() {
     return saved === null ? true : saved === "true";
   });
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const formRef = useRef(null);
 
-  // Smooth theme transition applied globally
   useEffect(() => {
     localStorage.setItem("theme", theme);
   }, [theme]);
@@ -380,12 +376,10 @@ export default function App() {
         }
       });
       setActiveSection(current);
-
-      if (mobileMenuOpen) setMobileMenuOpen(false); // Close mobile menu on scroll
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [mobileMenuOpen]);
+  }, []);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -469,67 +463,83 @@ export default function App() {
   return (
     <>
       <style>{`
-        /* Global smooth color/background transitions */
-        body, #root, .App, html {
+        :root {
+          --color-primary: ${colors.primary};
+          --color-primary-dark: ${colors.primaryDark};
+          --color-primary-light: ${colors.primaryLight};
+        }
+        body, #root, html {
           transition: background-color 0.4s ease, color 0.4s ease;
         }
-
-        /* Nav & buttons transitions */
-        nav, button, .glass-card, a {
-          transition: color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        .glass-card {
+          background: rgba(255 255 255 / 0.15);
+          backdrop-filter: saturate(180%) blur(10px);
+          transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
         }
-
-        /* Underline animation for nav items */
-        .nav-link {
-          position: relative;
+        .glass-card:hover, .glass-card:focus-visible {
+          background: rgba(255 255 255 / 0.3);
+          box-shadow: 0 0 20px var(--color-primary-light);
+          transform: translateY(-5px) scale(1.02);
           cursor: pointer;
           outline: none;
-          display: inline-block;
-          padding-bottom: 2px;
-          user-select: none;
         }
-        .nav-link::after {
-          content: '';
+        nav ul li, nav ul li:hover, nav ul li.active {
+          transition: color 0.3s ease;
+        }
+        nav ul li:hover, nav ul li.active {
+          color: var(--color-primary);
+          font-weight: 600;
+          position: relative;
+        }
+        nav ul li:hover::after, nav ul li.active::after {
+          content: "";
           position: absolute;
-          width: 0;
-          height: 2px;
-          bottom: 0;
+          bottom: -4px;
           left: 0;
-          background-color: var(--color-primary);
-          transition: width 0.3s ease;
-          border-radius: 1px;
-        }
-        .nav-link:hover::after,
-        .nav-link.active::after {
           width: 100%;
+          height: 2px;
+          background: var(--color-primary);
+          border-radius: 2px;
+          animation: underlineGrow 0.3s forwards;
         }
-
-        /* Hover scale on nav items */
-        .nav-link:hover {
+        @keyframes underlineGrow {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+        a:hover, a:focus-visible {
+          text-decoration: underline;
+          color: var(--color-primary);
+          transition: color 0.3s ease;
+        }
+        button:hover, button:focus-visible {
           transform: scale(1.05);
+          transition: transform 0.3s ease;
+          outline: none;
         }
-
-        /* Mobile hamburger styles */
+        .back-to-top:hover, .back-to-top:focus-visible {
+          background-color: var(--color-primary-dark);
+          outline: none;
+        }
+        /* Hamburger menu styles */
         .hamburger {
           display: none;
           flex-direction: column;
           justify-content: space-around;
-          width: 28px;
-          height: 24px;
+          width: 25px;
+          height: 25px;
           background: transparent;
           border: none;
           cursor: pointer;
           padding: 0;
-          box-sizing: border-box;
-          z-index: 50;
+          z-index: 60;
           transition: transform 0.3s ease;
         }
-        .hamburger:focus {
+        .hamburger:focus-visible {
           outline: 2px solid var(--color-primary);
           outline-offset: 2px;
         }
         .hamburger div {
-          width: 28px;
+          width: 25px;
           height: 3px;
           background: var(--color-primary);
           border-radius: 2px;
@@ -542,112 +552,63 @@ export default function App() {
         }
         .hamburger.open div:nth-child(2) {
           opacity: 0;
+          transform: translateX(20px);
         }
         .hamburger.open div:nth-child(3) {
           transform: rotate(-45deg);
         }
-
-        /* Mobile nav panel */
-        .mobile-nav {
-          display: none;
+        @media (max-width: 767px) {
+          .hamburger {
+            display: flex;
+          }
+          nav ul {
+            display: none;
+          }
+          .mobile-nav {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            width: 200px;
+            background: var(--color-primary);
+            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+            border-radius: 0 0 0 8px;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+          }
+          .mobile-nav.open {
+            transform: translateX(0);
+          }
+          .mobile-nav a {
+            color: white;
+            padding: 0.5rem 0;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255 255 255 / 0.2);
+            transition: background-color 0.3s ease;
+          }
+          .mobile-nav a:hover, .mobile-nav a:focus-visible {
+            background-color: rgba(255 255 255 / 0.15);
+            outline: none;
+          }
         }
-        .mobile-nav.open {
-          display: flex;
-          flex-direction: column;
-          position: fixed;
-          top: 60px;
-          right: 0;
-          background: var(--color-primary);
-          width: 70vw;
-          max-width: 300px;
-          height: calc(100vh - 60px);
-          padding: 1rem 1.5rem;
-          box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-          z-index: 45;
-          animation: slideIn 0.3s ease forwards;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        .mobile-nav a {
-          color: white;
-          font-size: 1.25rem;
-          font-weight: 600;
-          padding: 1rem 0;
-          border-bottom: 1px solid rgba(255 255 255 / 0.3);
-          user-select: none;
-          transition: background-color 0.3s ease;
-          text-decoration: none;
-        }
-        .mobile-nav a:hover,
-        .mobile-nav a:focus {
-          background-color: rgba(255 255 255 / 0.2);
-          outline: none;
-        }
-
-        /* Project card hover with tilt effect (CSS transform) */
-        .project-card {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-          cursor: pointer;
-          will-change: transform;
-          user-select: none;
-          border-radius: 1rem;
-        }
-        .project-card:hover, .project-card:focus-within {
-          transform: scale(1.03) rotateX(2deg) rotateY(3deg);
-          box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-          outline: none;
-        }
-
-        /* Link hover effects */
-        a.hover-underline:hover,
-        a.hover-underline:focus {
-          text-decoration: underline;
-          text-underline-offset: 3px;
-          color: var(--color-primary-dark);
-          transition: color 0.3s ease;
-          outline: none;
-        }
-
-        /* Social icons hover animations */
-        .social-icon svg {
+        /* Social icons hover animation */
+        footer a svg {
           transition: stroke 0.3s ease, fill 0.3s ease;
         }
-        .social-icon:hover svg,
-        .social-icon:focus svg {
+        footer a:hover svg, footer a:focus-visible svg {
           stroke: var(--color-primary);
           fill: var(--color-primary);
           outline: none;
         }
-
-        /* Back to Top button hover */
-        .back-to-top:hover,
-        .back-to-top:focus {
-          transform: scale(1.1);
-          background-color: var(--color-primary-dark);
-          outline: none;
-        }
-
-        /* Increase tap targets on mobile */
-        @media (max-width: 768px) {
-          nav ul {
-            display: none;
-          }
-          .hamburger {
-            display: flex;
-          }
-          button, a, input, textarea {
-            min-height: 44px;
-            min-width: 44px;
-            padding: 12px;
-            font-size: 1.1rem;
-          }
-        }
       `}</style>
 
       <div
-        className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
+        className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans transition-colors duration-700`}
         style={{ paddingBottom: "90px" }}
       >
         <Floating3DCanvas theme={theme} />
@@ -661,28 +622,34 @@ export default function App() {
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
           }`}
+          role="navigation"
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
               onClick={() => {
                 scrollTo("hero");
-                if(mobileMenuOpen) setMobileMenuOpen(false);
+                setMobileMenuOpen(false);
               }}
               className="text-2xl font-bold cursor-pointer select-none"
               tabIndex={0}
-              onKeyDown={e => (e.key === "Enter" || e.key === " ") && scrollTo("hero")}
+              role="link"
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && scrollTo("hero")}
+              aria-label="Go to Home"
             >
               Meet Gojiya
             </div>
 
-            {/* Desktop Nav */}
+            {/* Desktop nav */}
             <ul className="hidden md:flex space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  className={`nav-link ${activeSection === id ? "text-[var(--color-primary)] font-semibold active" : "hover:text-[var(--color-primary)]"}`}
+                  className={`cursor-pointer nav-link ${
+                    activeSection === id ? "active" : ""
+                  }`}
                   tabIndex={0}
+                  role="link"
                   onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && scrollTo(id)}
                   aria-current={activeSection === id ? "page" : undefined}
                 >
@@ -691,7 +658,7 @@ export default function App() {
               ))}
             </ul>
 
-            {/* Mobile Hamburger */}
+            {/* Mobile hamburger */}
             <button
               className={`hamburger ${mobileMenuOpen ? "open" : ""}`}
               aria-label="Toggle mobile menu"
@@ -703,7 +670,7 @@ export default function App() {
               <div />
             </button>
 
-            {/* Mobile Nav Menu */}
+            {/* Mobile nav menu */}
             <nav
               className={`mobile-nav ${mobileMenuOpen ? "open" : ""}`}
               aria-hidden={!mobileMenuOpen}
@@ -723,7 +690,7 @@ export default function App() {
               ))}
             </nav>
 
-            {/* Dark mode & Theme buttons */}
+            {/* Dark mode & theme cycle buttons */}
             <div className="hidden md:flex items-center space-x-4">
               <button
                 aria-label="Toggle Dark Mode"
@@ -855,32 +822,29 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.8 }}
-                className="project-card glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg select-none"
+                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
                 tabIndex={0}
+                role="group"
                 aria-label={`Project: ${projects[currentProject].title}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    window.open(projects[currentProject].live, "_blank");
+                  }
+                }}
               >
-                <h3
-                  className="text-2xl font-semibold mb-4"
-                  style={{ color: colors.primary }}
-                >
+                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
                   {projects[currentProject].title}
                 </h3>
-
-                {/* Skeleton loader placeholder while transitioning */}
-                {currentProject === null ? (
-                  <div className="h-20 bg-gray-300 rounded animate-pulse dark:bg-gray-700" />
-                ) : (
-                  <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                    {projects[currentProject].description}
-                  </p>
-                )}
+                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
+                  {projects[currentProject].description}
+                </p>
 
                 <div className="flex justify-center gap-6">
                   <a
                     href={projects[currentProject].live}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover-underline font-semibold"
+                    className="hover:underline font-semibold"
                     style={{ color: colors.primary }}
                   >
                     Live Demo
@@ -889,7 +853,7 @@ export default function App() {
                     href={projects[currentProject].link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover-underline font-semibold"
+                    className="hover:underline font-semibold"
                     style={{ color: colors.primary }}
                   >
                     GitHub
@@ -969,11 +933,10 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
-              tabIndex={0}
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
               </svg>
             </a>
@@ -982,16 +945,17 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
-              tabIndex={0}
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
               </svg>
             </a>
           </div>
         </footer>
+
+        <BackToTop />
 
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
@@ -1020,8 +984,6 @@ export default function App() {
           </svg>
           <span>Resume</span>
         </a>
-
-        <BackToTop />
       </div>
     </>
   );
