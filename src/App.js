@@ -71,11 +71,11 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive Particles
-function InteractiveParticles({ color }) {
+// Interactive Particles with mobile adjustments
+function InteractiveParticles({ color, isMobile }) {
   const { viewport, mouse } = useThree();
 
-  const PARTICLE_COUNT = 100;
+  const PARTICLE_COUNT = isMobile ? 40 : 100; // reduce on mobile
   const PARTICLE_DISTANCE = 1.7;
   const positions = useRef([]);
   const velocities = useRef([]);
@@ -110,12 +110,12 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
-      // Bounce boundaries bigger for full viewport + some margin
+      // Bounce boundaries bigger for full viewport + margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Stronger mouse repulsion with smoothing
+      // Mouse repulsion smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -127,7 +127,7 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity with a bit more speed for liveliness
+      // Clamp velocity
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -200,6 +200,12 @@ function InteractiveParticles({ color }) {
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
 
+  // detect mobile to adjust particles and controls
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+  }, []);
+
   return (
     <Canvas
       style={{
@@ -211,6 +217,7 @@ function Floating3DCanvas({ theme }) {
         pointerEvents: "auto",
         zIndex: 1,
         opacity: 0.8,
+        transition: "opacity 0.4s ease",
       }}
       camera={{ position: [0, 0, 12], fov: 65 }}
       gl={{ antialias: true, toneMappingExposure: 1.5 }}
@@ -219,12 +226,37 @@ function Floating3DCanvas({ theme }) {
       <directionalLight position={[5, 5, 5]} intensity={0.8} />
       <pointLight position={[-5, -5, 5]} intensity={0.5} />
       <Suspense fallback={null}>
-        <InteractiveParticles color={colors.particlesColor} />
+        <InteractiveParticles color={colors.particlesColor} isMobile={isMobile} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
+      <OrbitControls
+        autoRotate={!isMobile}
+        autoRotateSpeed={0.1}
+        enableZoom={false}
+        enablePan={false}
+      />
     </Canvas>
   );
+}
+
+// Back To Top Button
+function BackToTop() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return visible ? (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Back to top"
+      className="fixed bottom-8 right-8 bg-[var(--color-primary)] p-3 rounded-full shadow-lg text-white hover:bg-[var(--color-primary-dark)] transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+      style={{ zIndex: 9999 }}
+    >
+      ↑
+    </button>
+  ) : null;
 }
 
 function ScrollIndicator({ onClick }) {
@@ -257,6 +289,7 @@ function ScrollIndicator({ onClick }) {
   );
 }
 
+// Section with fade-in on scroll
 function SectionReveal({ id, colors, title, children }) {
   const controls = useAnimation();
   const ref = useRef();
@@ -283,7 +316,10 @@ function SectionReveal({ id, colors, title, children }) {
       animate={controls}
       className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
     >
-      <motion.h2 className="text-4xl font-bold" style={{ color: colors.primary }}>
+      <motion.h2
+        className="text-4xl font-bold"
+        style={{ color: colors.primary, transition: "color 0.4s ease" }}
+      >
         {title}
       </motion.h2>
       <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">{children}</div>
@@ -308,12 +344,15 @@ export default function App() {
     return saved === null ? true : saved === "true";
   });
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
   const formRef = useRef(null);
 
+  // Smooth theme transition applied globally
   useEffect(() => {
     localStorage.setItem("theme", theme);
   }, [theme]);
@@ -341,10 +380,12 @@ export default function App() {
         }
       });
       setActiveSection(current);
+
+      if (mobileMenuOpen) setMobileMenuOpen(false); // Close mobile menu on scroll
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [mobileMenuOpen]);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -428,21 +469,180 @@ export default function App() {
   return (
     <>
       <style>{`
-        :root {
-          --color-primary: ${colors.primary};
-          --color-primary-dark: ${colors.primaryDark};
-          --color-primary-light: ${colors.primaryLight};
+        /* Global smooth color/background transitions */
+        body, #root, .App, html {
+          transition: background-color 0.4s ease, color 0.4s ease;
         }
-        .glass-card {
-          background: rgba(255 255 255 / 0.15);
-          backdrop-filter: saturate(180%) blur(10px);
-          transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+
+        /* Nav & buttons transitions */
+        nav, button, .glass-card, a {
+          transition: color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
         }
-        .glass-card:hover {
-          background: rgba(255 255 255 / 0.3);
-          box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px);
+
+        /* Underline animation for nav items */
+        .nav-link {
+          position: relative;
           cursor: pointer;
+          outline: none;
+          display: inline-block;
+          padding-bottom: 2px;
+          user-select: none;
+        }
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          width: 0;
+          height: 2px;
+          bottom: 0;
+          left: 0;
+          background-color: var(--color-primary);
+          transition: width 0.3s ease;
+          border-radius: 1px;
+        }
+        .nav-link:hover::after,
+        .nav-link.active::after {
+          width: 100%;
+        }
+
+        /* Hover scale on nav items */
+        .nav-link:hover {
+          transform: scale(1.05);
+        }
+
+        /* Mobile hamburger styles */
+        .hamburger {
+          display: none;
+          flex-direction: column;
+          justify-content: space-around;
+          width: 28px;
+          height: 24px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          box-sizing: border-box;
+          z-index: 50;
+          transition: transform 0.3s ease;
+        }
+        .hamburger:focus {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+        .hamburger div {
+          width: 28px;
+          height: 3px;
+          background: var(--color-primary);
+          border-radius: 2px;
+          transition: all 0.3s linear;
+          position: relative;
+          transform-origin: 1px;
+        }
+        .hamburger.open div:nth-child(1) {
+          transform: rotate(45deg);
+        }
+        .hamburger.open div:nth-child(2) {
+          opacity: 0;
+        }
+        .hamburger.open div:nth-child(3) {
+          transform: rotate(-45deg);
+        }
+
+        /* Mobile nav panel */
+        .mobile-nav {
+          display: none;
+        }
+        .mobile-nav.open {
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          top: 60px;
+          right: 0;
+          background: var(--color-primary);
+          width: 70vw;
+          max-width: 300px;
+          height: calc(100vh - 60px);
+          padding: 1rem 1.5rem;
+          box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+          z-index: 45;
+          animation: slideIn 0.3s ease forwards;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .mobile-nav a {
+          color: white;
+          font-size: 1.25rem;
+          font-weight: 600;
+          padding: 1rem 0;
+          border-bottom: 1px solid rgba(255 255 255 / 0.3);
+          user-select: none;
+          transition: background-color 0.3s ease;
+          text-decoration: none;
+        }
+        .mobile-nav a:hover,
+        .mobile-nav a:focus {
+          background-color: rgba(255 255 255 / 0.2);
+          outline: none;
+        }
+
+        /* Project card hover with tilt effect (CSS transform) */
+        .project-card {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          cursor: pointer;
+          will-change: transform;
+          user-select: none;
+          border-radius: 1rem;
+        }
+        .project-card:hover, .project-card:focus-within {
+          transform: scale(1.03) rotateX(2deg) rotateY(3deg);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+          outline: none;
+        }
+
+        /* Link hover effects */
+        a.hover-underline:hover,
+        a.hover-underline:focus {
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          color: var(--color-primary-dark);
+          transition: color 0.3s ease;
+          outline: none;
+        }
+
+        /* Social icons hover animations */
+        .social-icon svg {
+          transition: stroke 0.3s ease, fill 0.3s ease;
+        }
+        .social-icon:hover svg,
+        .social-icon:focus svg {
+          stroke: var(--color-primary);
+          fill: var(--color-primary);
+          outline: none;
+        }
+
+        /* Back to Top button hover */
+        .back-to-top:hover,
+        .back-to-top:focus {
+          transform: scale(1.1);
+          background-color: var(--color-primary-dark);
+          outline: none;
+        }
+
+        /* Increase tap targets on mobile */
+        @media (max-width: 768px) {
+          nav ul {
+            display: none;
+          }
+          .hamburger {
+            display: flex;
+          }
+          button, a, input, textarea {
+            min-height: 44px;
+            min-width: 44px;
+            padding: 12px;
+            font-size: 1.1rem;
+          }
         }
       `}</style>
 
@@ -464,25 +664,67 @@ export default function App() {
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
-              onClick={() => scrollTo("hero")}
+              onClick={() => {
+                scrollTo("hero");
+                if(mobileMenuOpen) setMobileMenuOpen(false);
+              }}
               className="text-2xl font-bold cursor-pointer select-none"
+              tabIndex={0}
+              onKeyDown={e => (e.key === "Enter" || e.key === " ") && scrollTo("hero")}
             >
               Meet Gojiya
             </div>
+
+            {/* Desktop Nav */}
             <ul className="hidden md:flex space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
-                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
-                  }`}
+                  className={`nav-link ${activeSection === id ? "text-[var(--color-primary)] font-semibold active" : "hover:text-[var(--color-primary)]"}`}
+                  tabIndex={0}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && scrollTo(id)}
+                  aria-current={activeSection === id ? "page" : undefined}
                 >
                   {label}
                 </li>
               ))}
             </ul>
-            <div className="flex items-center space-x-4">
+
+            {/* Mobile Hamburger */}
+            <button
+              className={`hamburger ${mobileMenuOpen ? "open" : ""}`}
+              aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((v) => !v)}
+            >
+              <div />
+              <div />
+              <div />
+            </button>
+
+            {/* Mobile Nav Menu */}
+            <nav
+              className={`mobile-nav ${mobileMenuOpen ? "open" : ""}`}
+              aria-hidden={!mobileMenuOpen}
+            >
+              {navItems.map(({ label, id }) => (
+                <a
+                  key={id}
+                  onClick={() => {
+                    scrollTo(id);
+                    setMobileMenuOpen(false);
+                  }}
+                  tabIndex={mobileMenuOpen ? 0 : -1}
+                  href={`#${id}`}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+
+            {/* Dark mode & Theme buttons */}
+            <div className="hidden md:flex items-center space-x-4">
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
@@ -613,21 +855,32 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.8 }}
-                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
+                className="project-card glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg select-none"
+                tabIndex={0}
+                aria-label={`Project: ${projects[currentProject].title}`}
               >
-                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
+                <h3
+                  className="text-2xl font-semibold mb-4"
+                  style={{ color: colors.primary }}
+                >
                   {projects[currentProject].title}
                 </h3>
-                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                  {projects[currentProject].description}
-                </p>
+
+                {/* Skeleton loader placeholder while transitioning */}
+                {currentProject === null ? (
+                  <div className="h-20 bg-gray-300 rounded animate-pulse dark:bg-gray-700" />
+                ) : (
+                  <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
+                    {projects[currentProject].description}
+                  </p>
+                )}
 
                 <div className="flex justify-center gap-6">
                   <a
                     href={projects[currentProject].live}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
+                    className="hover-underline font-semibold"
                     style={{ color: colors.primary }}
                   >
                     Live Demo
@@ -636,7 +889,7 @@ export default function App() {
                     href={projects[currentProject].link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
+                    className="hover-underline font-semibold"
                     style={{ color: colors.primary }}
                   >
                     GitHub
@@ -716,10 +969,11 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="hover:text-current transition"
+              className="social-icon hover:text-current transition"
               style={{ color: colors.primary }}
+              tabIndex={0}
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
               </svg>
             </a>
@@ -728,10 +982,11 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="hover:text-current transition"
+              className="social-icon hover:text-current transition"
               style={{ color: colors.primary }}
+              tabIndex={0}
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
               </svg>
             </a>
@@ -765,6 +1020,8 @@ export default function App() {
           </svg>
           <span>Resume</span>
         </a>
+
+        <BackToTop />
       </div>
     </>
   );
