@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-// Define your theme colors (used as CSS variables)
+// Theme colors with CSS variables support
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
@@ -40,7 +40,7 @@ const themeColors = {
   },
 };
 
-// 3D Shapes from before for Floating3DCanvas, unchanged
+// 3D Shapes (unchanged)
 function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
   const mesh = useRef();
   const [hovered, setHovered] = useState(false);
@@ -99,73 +99,6 @@ function RotatingIcosahedron({ color, ...props }) {
   );
 }
 
-// New: Interactive Particles Component for Canvas
-function InteractiveParticles({ color }) {
-  const particlesCount = 150;
-  const mesh = useRef();
-  const velocities = useRef(
-    new Array(particlesCount).fill().map(() => ({
-      x: (Math.random() - 0.5) * 0.002,
-      y: (Math.random() - 0.5) * 0.002,
-      z: (Math.random() - 0.5) * 0.002,
-    }))
-  );
-
-  // Positions array for particles
-  const positions = useRef(
-    new Float32Array(particlesCount * 3).map(() => (Math.random() - 0.5) * 10)
-  );
-
-  useFrame(({ mouse }) => {
-    if (!mesh.current) return;
-    for (let i = 0; i < particlesCount; i++) {
-      positions.current[i * 3] += velocities.current[i].x;
-      positions.current[i * 3 + 1] += velocities.current[i].y;
-      positions.current[i * 3 + 2] += velocities.current[i].z;
-
-      // Simple bounds and reverse velocity
-      for (let axis = 0; axis < 3; axis++) {
-        if (positions.current[i * 3 + axis] > 5 || positions.current[i * 3 + axis] < -5) {
-          velocities.current[i][['x','y','z'][axis]] *= -1;
-        }
-      }
-
-      // Repel from mouse position on X,Y plane
-      if (mouse.x && mouse.y) {
-        const dx = positions.current[i * 3] - mouse.x * 10;
-        const dy = positions.current[i * 3 + 1] - mouse.y * 10;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < 1) {
-          velocities.current[i].x += dx * 0.0005;
-          velocities.current[i].y += dy * 0.0005;
-        }
-      }
-    }
-    mesh.current.geometry.attributes.position.needsUpdate = true;
-    mesh.current.position.z = Math.sin(Date.now() * 0.001) * 0.5;
-  });
-
-  return (
-    <points ref={mesh}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions.current}
-          count={particlesCount}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.05}
-        color={color}
-        sizeAttenuation={true}
-        opacity={0.7}
-        transparent={true}
-      />
-    </points>
-  );
-}
-
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
   return (
@@ -193,7 +126,16 @@ function Floating3DCanvas({ theme }) {
           colorHover={colors.threeColor2}
         />
         <RotatingIcosahedron color={colors.threeColor2} position={[2, 0, 0]} />
-        <InteractiveParticles color={colors.particlesColor} />
+        <Stars
+          radius={100}
+          depth={50}
+          count={500}
+          factor={5}
+          saturation={50}
+          fade
+          speed={1}
+          color={colors.particlesColor}
+        />
       </Suspense>
       <OrbitControls
         autoRotate
@@ -205,33 +147,36 @@ function Floating3DCanvas({ theme }) {
   );
 }
 
-// Animated SVG Icon for Skills (simple pulse animation)
-function AnimatedSkillIcon() {
+// Scroll Indicator Component: Animated downward arrow bouncing
+function ScrollIndicator() {
   return (
-    <motion.svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      width="30"
-      height="30"
-      fill="var(--color-primary)"
-      initial={{ scale: 1 }}
-      animate={{
-        scale: [1, 1.15, 1],
-        rotate: [0, 15, -15, 0],
-        transition: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+    <motion.div
+      className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-gray-400 dark:text-gray-300 cursor-pointer"
+      initial={{ opacity: 0.7, y: 0 }}
+      animate={{ y: [0, 10, 0] }}
+      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+      aria-label="Scroll down indicator"
+      onClick={() => {
+        const projectsSection = document.getElementById("projects");
+        if (projectsSection) {
+          window.scrollTo({ top: projectsSection.offsetTop - 80, behavior: "smooth" });
+        }
       }}
-      style={{ marginRight: 8 }}
+      title="Scroll to Projects"
     >
-      <circle cx="32" cy="32" r="14" stroke="var(--color-primary)" strokeWidth="3" fill="none" />
-      <path d="M32 20 L32 44 M20 32 L44 32" stroke="var(--color-primary)" strokeWidth="3" />
-    </motion.svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-8 w-8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </motion.div>
   );
 }
-
-// Replace with your EmailJS credentials
-const EMAILJS_SERVICE_ID = "service_i6dqi68";
-const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
-const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
@@ -253,19 +198,10 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
   const formRef = useRef(null);
-
-  // For parallax hero effect
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
-    const root = document.documentElement;
-    const colors = themeColors[theme];
-    if (colors) {
-      root.style.setProperty("--color-primary", colors.primary);
-      root.style.setProperty("--color-primary-dark", colors.primaryDark);
-      root.style.setProperty("--color-primary-light", colors.primaryLight);
-    }
   }, [theme]);
 
   useEffect(() => {
@@ -275,6 +211,7 @@ export default function App() {
     else html.classList.remove("dark");
   }, [darkMode]);
 
+  // Scroll listener for progress bar, active nav, and parallax scrollY
   useEffect(() => {
     const sections = navItems.map(({ id }) => document.getElementById(id));
     const onScroll = () => {
@@ -301,7 +238,8 @@ export default function App() {
     const el = document.getElementById(id);
     if (!el) return;
     const yOffset = -80;
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const y =
+      el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
   };
 
@@ -311,10 +249,10 @@ export default function App() {
 
     emailjs
       .sendForm(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
+        "service_i6dqi68",
+        "template_mrty8sn",
         formRef.current,
-        EMAILJS_USER_ID
+        "bqXMM_OmpPWcc1AMi"
       )
       .then(() => {
         setContactStatus("SUCCESS");
@@ -371,7 +309,7 @@ export default function App() {
   useEffect(() => {
     projectTimeout.current = setTimeout(() => {
       setCurrentProject((prev) => (prev + 1) % projects.length);
-    }, 6000);
+    }, 5000);
     return () => clearTimeout(projectTimeout.current);
   }, [currentProject]);
 
@@ -381,55 +319,37 @@ export default function App() {
     setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
   };
 
+  const colors = themeColors[theme] || themeColors.saffron;
+
+  // CSS variables for colors
+  useEffect(() => {
+    document.documentElement.style.setProperty("--color-primary", colors.primary);
+    document.documentElement.style.setProperty("--color-primary-dark", colors.primaryDark);
+    document.documentElement.style.setProperty("--color-primary-light", colors.primaryLight);
+  }, [colors]);
+
   return (
     <>
-      {/* Global CSS variables and styles */}
+      {/* Global CSS for glass effect and transitions */}
       <style>{`
         :root {
-          --color-primary: ${themeColors[theme].primary};
-          --color-primary-dark: ${themeColors[theme].primaryDark};
-          --color-primary-light: ${themeColors[theme].primaryLight};
-          --transition-speed: 0.5s;
+          --color-primary: ${colors.primary};
+          --color-primary-dark: ${colors.primaryDark};
+          --color-primary-light: ${colors.primaryLight};
         }
-
-        html {
-          transition: background-color var(--transition-speed), color var(--transition-speed);
-        }
-
-        body {
-          margin: 0;
-          background-color: var(--background-color, white);
-          color: var(--text-color, black);
-          font-family: 'Inter', sans-serif;
-          transition: background-color var(--transition-speed), color var(--transition-speed);
-        }
-
-        .dark body {
-          --background-color: #1a202c;
-          --text-color: #f7fafc;
-          background-color: var(--background-color);
-          color: var(--text-color);
-        }
-
-        /* Glassmorphism Card */
         .glass-card {
-          background: rgba(255 255 255 / 0.15);
-          backdrop-filter: blur(12px);
-          border-radius: 16px;
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-          transition: background-color var(--transition-speed);
-          border: 1px solid rgba(255 255 255 / 0.18);
+          background: rgba(255 255 255 / 0.1);
+          backdrop-filter: saturate(180%) blur(10px);
+          transition: background 0.3s ease;
         }
-
-        .dark .glass-card {
-          background: rgba(31 38 135 / 0.3);
-          border: 1px solid rgba(255 255 255 / 0.25);
-        }
-
-        /* Button hover glow */
-        button:hover {
+        .glass-card:hover {
+          background: rgba(255 255 255 / 0.2);
           box-shadow: 0 0 15px var(--color-primary-light);
-          transition: box-shadow 0.3s ease;
+          cursor: pointer;
+          transform: scale(1.04);
+          transition: all 0.3s ease;
+          z-index: 2;
+          position: relative;
         }
       `}</style>
 
@@ -443,7 +363,7 @@ export default function App() {
         {/* Scroll Progress Bar */}
         <div
           className="fixed top-0 left-0 h-1 z-50 transition-all"
-          style={{ width: `${scrollProgress}%`, backgroundColor: `var(--color-primary)` }}
+          style={{ width: `${scrollProgress}%`, backgroundColor: colors.primary }}
         />
 
         {/* Navbar */}
@@ -456,7 +376,7 @@ export default function App() {
             <div
               onClick={() => scrollTo("hero")}
               className="text-2xl font-bold cursor-pointer select-none"
-              style={{ color: "var(--color-primary)" }}
+              style={{ color: colors.primary }}
             >
               Meet Gojiya
             </div>
@@ -465,11 +385,11 @@ export default function App() {
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
-                    activeSection === id ? "font-semibold" : ""
+                  className={`cursor-pointer hover:text-[${colors.primary}] transition ${
+                    activeSection === id ? `text-[${colors.primary}] font-semibold` : ""
                   }`}
                   style={{
-                    color: activeSection === id ? "var(--color-primary)" : undefined,
+                    color: activeSection === id ? colors.primary : undefined,
                   }}
                 >
                   {label}
@@ -480,8 +400,8 @@ export default function App() {
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition"
-                style={{ backgroundColor: "var(--color-primary)" }}
+                className={`p-2 rounded-full text-white transition`}
+                style={{ backgroundColor: colors.primary }}
               >
                 {darkMode ? (
                   <svg
@@ -551,6 +471,10 @@ export default function App() {
               Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
               experiences.
             </motion.p>
+
+            {/* Scroll Indicator */}
+            <ScrollIndicator />
+
             <motion.button
               whileHover={{ scale: 1.1, boxShadow: "0 0 12px var(--color-primary)" }}
               whileTap={{ scale: 0.95 }}
@@ -563,100 +487,89 @@ export default function App() {
           </section>
 
           {/* About Me Section */}
-          <section
+          <motion.section
             id="about"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
             className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
           >
-            <motion.h2
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+            <h2
               className="text-4xl font-bold"
               style={{ color: "var(--color-primary)" }}
             >
               About Me
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-lg max-w-3xl mx-auto leading-relaxed text-justify"
-            >
-              <p>
-                Meet Gojiya is a Solution Analyst on the Product Engineering and Development team, within the
-                Engineering, AI, and Data offering at Deloitte Canada. Meet has the ability to link business with
-                technology to extract insights from complex data and build data-driven solutions.
-              </p>
-              <br />
-              <p>
-                Meet is a graduate of the University of New Brunswick, where he earned a Master of Computer Science
-                degree. He also holds a Bachelor’s degree in Computer Engineering from Gujarat Technological University.
-                Meet is driven by technology innovation, advanced analytics, adaptability, collaboration, and creativity,
-                ultimately furthering his career as well as those around him. He possesses a strong entrepreneurial spirit,
-                which fuels his passion for creating impactful solutions and driving positive change within the industry and
-                the world.
-              </p>
-              <br />
-              <p>
-                An avid learner and active listener, Meet thrives on absorbing knowledge from as many people as possible,
-                recognizing that every interaction is an opportunity to gain new insights and perspectives. His extremely
-                curious personality propels him to explore new ideas, question existing paradigms, and continuously seek out
-                opportunities for learning and growth.
-              </p>
-            </motion.p>
-          </section>
+            </h2>
+            <p className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">
+              Meet Gojiya is a Solution Analyst on the Product Engineering and Development
+              team, within the Engineering, AI, and Data offering at Deloitte Canada.
+              Meet has the ability to link business with technology to extract insights
+              from complex data and build data-driven solutions.
+            </p>
+            <p>
+              Meet is a graduate of the University of New Brunswick, where he earned a
+              Master of Computer Science degree. He also holds a Bachelor’s degree in
+              Computer Engineering from Gujarat Technological University. Meet is driven
+              by technology innovation, advanced analytics, adaptability, collaboration,
+              and creativity, ultimately furthering his career as well as those around
+              him. He possesses a strong entrepreneurial spirit, which fuels his passion
+              for creating impactful solutions and driving positive change within the
+              industry and the world.
+            </p>
+            <p>
+              An avid learner and active listener, Meet thrives on absorbing knowledge
+              from as many people as possible, recognizing that every interaction is an
+              opportunity to gain new insights and perspectives. His extremely curious
+              personality propels him to explore new ideas, question existing paradigms,
+              and continuously seek out opportunities for learning and growth.
+            </p>
+          </motion.section>
 
-          {/* Skills */}
-          <section
+          {/* Skills Section */}
+          <motion.section
             id="skills"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
             className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
           >
-            <motion.h2
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+            <h2
               className="text-4xl font-bold"
               style={{ color: "var(--color-primary)" }}
             >
               Skills
-            </motion.h2>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="flex flex-wrap justify-center gap-4"
-            >
+            </h2>
+            <div className="flex flex-wrap justify-center gap-4">
               {skills.map((skill) => (
-                <motion.span
+                <span
                   key={skill}
-                  className="px-5 py-2 rounded-full text-white font-semibold cursor-default select-none transition glass-card flex items-center justify-center"
+                  className="px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition glass-card"
                   style={{ backgroundColor: "var(--color-primary)" }}
-                  whileHover={{ scale: 1.1, boxShadow: "0 0 12px var(--color-primary-light)" }}
+                  title={skill}
                 >
-                  <AnimatedSkillIcon /> {skill}
-                </motion.span>
+                  {skill}
+                </span>
               ))}
-            </motion.div>
-          </section>
+            </div>
+          </motion.section>
 
-          {/* Projects Carousel */}
-          <section
+          {/* Projects Section */}
+          <motion.section
             id="projects"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1 }}
             className="max-w-5xl mx-auto px-4 space-y-8 text-center relative z-10"
           >
-            <motion.h2
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
+            <h2
               className="text-4xl font-bold"
               style={{ color: "var(--color-primary)" }}
             >
               Projects
-            </motion.h2>
+            </h2>
 
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -665,9 +578,16 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.8 }}
-                className="block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-default select-none glass-card"
+                className="block mx-auto max-w-3xl p-8 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg cursor-default select-none glass-card"
+                whileHover={{
+                  scale: 1.05,
+                  boxShadow: "0 0 15px var(--color-primary-light)",
+                }}
               >
-                <h3 className="text-2xl font-semibold mb-4" style={{ color: "var(--color-primary)" }}>
+                <h3
+                  className="text-2xl font-semibold mb-4"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {projects[currentProject].title}
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
@@ -702,32 +622,37 @@ export default function App() {
                 <button
                   key={idx}
                   aria-label={`Go to project ${idx + 1}`}
-                  className={`w-4 h-4 rounded-full transition`}
+                  className={`w-4 h-4 rounded-full ${
+                    idx === currentProject
+                      ? "bg-[var(--color-primary)]"
+                      : "bg-gray-400"
+                  } transition`}
                   onClick={() => setCurrentProject(idx)}
                   style={{
-                    backgroundColor: idx === currentProject ? "var(--color-primary)" : "#999",
+                    backgroundColor:
+                      idx === currentProject ? colors.primary : undefined,
                   }}
                 />
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          {/* Contact */}
-          <section
+          {/* Contact Section */}
+          <motion.section
             id="contact"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
             className="max-w-xl mx-auto px-4 text-center space-y-6 relative z-10"
             style={{ paddingBottom: "120px" }}
           >
-            <motion.h2
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+            <h2
               className="text-4xl font-bold"
               style={{ color: "var(--color-primary)" }}
             >
               Contact Me
-            </motion.h2>
+            </h2>
 
             <form
               ref={formRef}
@@ -762,8 +687,12 @@ export default function App() {
                 type="submit"
                 className="w-full py-3 text-white rounded-lg transition"
                 style={{ backgroundColor: "var(--color-primary)" }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = themeColors[theme].primaryDark)}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = themeColors[theme].primary)}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.backgroundColor = colors.primaryDark)
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.backgroundColor = colors.primary)
+                }
               >
                 Send Message
               </button>
@@ -779,7 +708,7 @@ export default function App() {
                 Oops! Something went wrong. Please try again.
               </p>
             )}
-          </section>
+          </motion.section>
         </main>
 
         {/* Tailbar Footer */}
@@ -792,7 +721,7 @@ export default function App() {
               rel="noopener noreferrer"
               aria-label="GitHub"
               className="hover:text-current transition"
-              style={{ color: "var(--color-primary)" }}
+              style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
@@ -804,7 +733,7 @@ export default function App() {
               rel="noopener noreferrer"
               aria-label="LinkedIn"
               className="hover:text-current transition"
-              style={{ color: "var(--color-primary)" }}
+              style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
@@ -821,9 +750,11 @@ export default function App() {
           className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
           title="Download Resume"
           download
-          style={{ backgroundColor: "var(--color-primary)" }}
-          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = themeColors[theme].primaryDark)}
-          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = themeColors[theme].primary)}
+          style={{ backgroundColor: colors.primary }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.backgroundColor = colors.primaryDark)
+          }
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
