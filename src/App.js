@@ -5,11 +5,11 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import emailjs from "emailjs-com";
 
 const navItems = [
-  { label: "Home", id: "hero" },
-  { label: "About Me", id: "about" },
-  { label: "Skills", id: "skills" },
-  { label: "Projects", id: "projects" },
-  { label: "Contact", id: "contact" },
+  { key: "home", id: "hero" },
+  { key: "about", id: "about" },
+  { key: "skills", id: "skills" },
+  { key: "projects", id: "projects" },
+  { key: "contact", id: "contact" },
 ];
 
 const themeColors = {
@@ -36,6 +36,52 @@ const themeColors = {
     threeColor1: "#7c3aed",
     threeColor2: "#8b5cf6",
     particlesColor: "#a78bfa",
+  },
+};
+
+// Translations for English and French
+const translations = {
+  en: {
+    home: "Home",
+    about: "About Me",
+    skills: "Skills",
+    projects: "Projects",
+    contact: "Contact",
+    seeMyWork: "See My Work",
+    fullStack:
+      "Full-stack Developer & AI Enthusiast — Building beautiful, scalable web experiences.",
+    aboutDescription1:
+      "Meet Gojiya is a Solution Analyst on the Product Engineering and Development team, within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the ability to link business with technology to extract insights from complex data and build data-driven solutions.",
+    aboutDescription2:
+      "Meet is a graduate of the University of New Brunswick, where he earned a Master of Computer Science degree. He also holds a Bachelor’s degree in Computer Engineering from Gujarat Technological University. Meet is driven by technology innovation, advanced analytics, adaptability, collaboration, and creativity, ultimately furthering his career as well as those around him. He possesses a strong entrepreneurial spirit, which fuels his passion for creating impactful solutions and driving positive change within the industry and the world.",
+    aboutDescription3:
+      "An avid learner and active listener, Meet thrives on absorbing knowledge from as many people as possible, recognizing that every interaction is an opportunity to gain new insights and perspectives. His extremely curious personality propels him to explore new ideas, question existing paradigms, and continuously seek out opportunities for learning and growth.",
+    sendMessage: "Send Message",
+    messageSent: "Message sent successfully!",
+    messageFailed: "Oops! Something went wrong. Please try again.",
+    downloadResume: "Download Resume",
+    backToTop: "Back to Top",
+  },
+  fr: {
+    home: "Accueil",
+    about: "À propos de moi",
+    skills: "Compétences",
+    projects: "Projets",
+    contact: "Contact",
+    seeMyWork: "Voir mon travail",
+    fullStack:
+      "Développeur Full-stack & passionné d'IA — Création d'expériences web belles et évolutives.",
+    aboutDescription1:
+      "Meet Gojiya est analyste de solutions dans l'équipe d'ingénierie, IA et données chez Deloitte Canada. Il est capable de relier les affaires à la technologie pour extraire des insights de données complexes et construire des solutions basées sur les données.",
+    aboutDescription2:
+      "Meet est diplômé de l'Université du Nouveau-Brunswick où il a obtenu une maîtrise en informatique. Il détient également un diplôme en génie informatique de l'Université technologique du Gujarat. Meet est motivé par l'innovation technologique, l'analyse avancée, l'adaptabilité, la collaboration et la créativité, développant ainsi sa carrière ainsi que celles des personnes qui l'entourent. Il possède un fort esprit entrepreneurial qui alimente sa passion pour créer des solutions impactantes et générer un changement positif dans l'industrie et dans le monde.",
+    aboutDescription3:
+      "Apprenant avide et auditeur actif, Meet s'épanouit en absorbant les connaissances de nombreuses personnes, reconnaissant que chaque interaction est une opportunité d'acquérir de nouvelles perspectives. Sa personnalité extrêmement curieuse le pousse à explorer de nouvelles idées, à remettre en question les paradigmes existants et à chercher continuellement des opportunités d'apprentissage et de croissance.",
+    sendMessage: "Envoyer le message",
+    messageSent: "Message envoyé avec succès !",
+    messageFailed: "Oups ! Quelque chose a mal tourné. Veuillez réessayer.",
+    downloadResume: "Télécharger le CV",
+    backToTop: "Retour en haut",
   },
 };
 
@@ -110,12 +156,10 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
-      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -127,7 +171,6 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -138,7 +181,6 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -197,9 +239,10 @@ function InteractiveParticles({ color }) {
   );
 }
 
-function Floating3DCanvas({ theme }) {
+function Floating3DCanvas({ theme, isMobile }) {
   const colors = themeColors[theme] || themeColors.saffron;
 
+  // For mobile: reduce particle count or disable autoRotate
   return (
     <Canvas
       style={{
@@ -222,7 +265,12 @@ function Floating3DCanvas({ theme }) {
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
+      <OrbitControls
+        autoRotate={!isMobile}
+        autoRotateSpeed={0.1}
+        enableZoom={false}
+        enablePan={false}
+      />
     </Canvas>
   );
 }
@@ -291,12 +339,35 @@ function SectionReveal({ id, colors, title, children }) {
   );
 }
 
+// Loading skeleton for projects
+function ProjectSkeleton({ colors }) {
+  return (
+    <div
+      className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-default select-none animate-pulse"
+      style={{ backgroundColor: colors.primaryLight + "30" }}
+    >
+      <div className="h-8 mb-4 rounded bg-gray-300 dark:bg-gray-700"></div>
+      <div className="h-4 mb-6 rounded bg-gray-300 dark:bg-gray-700"></div>
+      <div className="flex justify-center gap-6">
+        <div className="w-20 h-8 rounded bg-gray-300 dark:bg-gray-700"></div>
+        <div className="w-20 h-8 rounded bg-gray-300 dark:bg-gray-700"></div>
+      </div>
+    </div>
+  );
+};
+
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
+  const [lang, setLang] = useState(() => {
+    const saved = localStorage.getItem("lang");
+    return saved === "fr" ? "fr" : "en";
+  });
+
+  const t = (key) => translations[lang][key] || key;
 
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -313,6 +384,14 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
   const formRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Hamburger menu state for mobile
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("lang", lang);
+  }, [lang]);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -324,6 +403,13 @@ export default function App() {
     if (darkMode) html.classList.add("dark");
     else html.classList.remove("dark");
   }, [darkMode]);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const sections = navItems.map(({ id }) => document.getElementById(id));
@@ -352,6 +438,7 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
+    setMenuOpen(false); // close menu on nav click for mobile
   };
 
   const sendEmail = (e) => {
@@ -409,19 +496,37 @@ export default function App() {
   ];
 
   const [currentProject, setCurrentProject] = useState(0);
+  const [loadingProject, setLoadingProject] = useState(false);
   const projectTimeout = useRef();
 
   useEffect(() => {
+    setLoadingProject(true);
+    const loadTimeout = setTimeout(() => setLoadingProject(false), 700);
     projectTimeout.current = setTimeout(() => {
       setCurrentProject((prev) => (prev + 1) % projects.length);
     }, 6000);
-    return () => clearTimeout(projectTimeout.current);
+    return () => {
+      clearTimeout(loadTimeout);
+      clearTimeout(projectTimeout.current);
+    };
   }, [currentProject]);
 
   const cycleTheme = () => {
     const currentIndex = validThemes.indexOf(theme);
     setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
   };
+
+  const toggleLang = () => setLang(lang === "en" ? "fr" : "en");
+
+  // Back to Top button visibility
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const colors = themeColors[theme] || themeColors.saffron;
 
@@ -432,6 +537,10 @@ export default function App() {
           --color-primary: ${colors.primary};
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
+          --color-primary-light-transparent: ${colors.primaryLight}33;
+        }
+        html, body, #root {
+          transition: background-color 0.7s ease, color 0.7s ease;
         }
         .glass-card {
           background: rgba(255 255 255 / 0.15);
@@ -441,8 +550,113 @@ export default function App() {
         .glass-card:hover {
           background: rgba(255 255 255 / 0.3);
           box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px);
+          transform: translateY(-5px) scale(1.02);
           cursor: pointer;
+          perspective: 800px;
+          transform-style: preserve-3d;
+          will-change: transform;
+        }
+        .glass-card:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+        nav ul li:hover, nav ul li:focus-visible {
+          color: var(--color-primary);
+          text-decoration: underline;
+          transition: color 0.3s ease;
+        }
+        a.hover-animate:hover {
+          color: var(--color-primary);
+          text-decoration: underline;
+          transform: scale(1.05);
+          transition: color 0.3s ease, transform 0.3s ease;
+        }
+        button, input, textarea {
+          font-family: inherit;
+        }
+        button:focus-visible, input:focus-visible, textarea:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+        /* Animated social icons */
+        .social-icon svg path {
+          transition: stroke 0.3s ease, fill 0.3s ease;
+        }
+        .social-icon:hover svg path {
+          stroke: var(--color-primary);
+          fill: var(--color-primary);
+          transition: stroke 0.3s ease, fill 0.3s ease;
+        }
+        /* Hamburger menu animations */
+        .hamburger {
+          cursor: pointer;
+          width: 28px;
+          height: 22px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          z-index: 60;
+        }
+        .hamburger span {
+          display: block;
+          height: 3px;
+          background: var(--color-primary);
+          border-radius: 2px;
+          transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .hamburger.open span:nth-child(1) {
+          transform: translateY(9.5px) rotate(45deg);
+        }
+        .hamburger.open span:nth-child(2) {
+          opacity: 0;
+        }
+        .hamburger.open span:nth-child(3) {
+          transform: translateY(-9.5px) rotate(-45deg);
+        }
+        .mobile-menu {
+          position: fixed;
+          top: 60px;
+          right: 0;
+          width: 240px;
+          background: rgba(255 255 255 / 0.95);
+          backdrop-filter: saturate(180%) blur(12px);
+          box-shadow: -4px 4px 12px rgba(0,0,0,0.1);
+          padding: 2rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          transform: translateX(100%);
+          transition: transform 0.3s ease;
+          z-index: 50;
+        }
+        .mobile-menu.open {
+          transform: translateX(0);
+        }
+        .back-to-top {
+          position: fixed;
+          bottom: 100px;
+          right: 24px;
+          background-color: var(--color-primary);
+          color: white;
+          border: none;
+          padding: 12px 16px;
+          border-radius: 9999px;
+          cursor: pointer;
+          box-shadow: 0 4px 12px var(--color-primary-light-transparent);
+          font-weight: 600;
+          opacity: 0.85;
+          transition: opacity 0.3s ease, transform 0.3s ease;
+          z-index: 55;
+        }
+        .back-to-top:hover {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+        @media (max-width: 768px) {
+          nav ul {
+            display: none;
+          }
         }
       `}</style>
 
@@ -450,7 +664,7 @@ export default function App() {
         className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
         style={{ paddingBottom: "90px" }}
       >
-        <Floating3DCanvas theme={theme} />
+        <Floating3DCanvas theme={theme} isMobile={isMobile} />
 
         <div
           className="fixed top-0 left-0 h-1 z-50 transition-all"
@@ -460,70 +674,105 @@ export default function App() {
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
-          }`}
+          } flex items-center justify-between px-6 py-3`}
         >
-          <div className="container mx-auto flex justify-between items-center px-6 py-3">
-            <div
-              onClick={() => scrollTo("hero")}
-              className="text-2xl font-bold cursor-pointer select-none"
+          <div
+            onClick={() => {
+              scrollTo("hero");
+              setMenuOpen(false);
+            }}
+            className="text-2xl font-bold cursor-pointer select-none"
+          >
+            Meet Gojiya
+          </div>
+
+          {/* Desktop Nav */}
+          <ul className="hidden md:flex space-x-10 font-medium text-lg">
+            {navItems.map(({ key, id }) => (
+              <li
+                key={id}
+                onClick={() => scrollTo(id)}
+                tabIndex={0}
+                onKeyDown={(e) => (e.key === "Enter" ? scrollTo(id) : null)}
+                className={`cursor-pointer transition ${
+                  activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
+                }`}
+              >
+                {t(key)}
+              </li>
+            ))}
+          </ul>
+
+          {/* Mobile Hamburger & Lang/Theme */}
+          <div className="flex items-center space-x-4">
+            <button
+              aria-label="Toggle language"
+              title={`Switch to ${lang === "en" ? "French" : "English"}`}
+              onClick={toggleLang}
+              className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition font-semibold"
             >
-              Meet Gojiya
-            </div>
-            <ul className="hidden md:flex space-x-10 font-medium text-lg">
-              {navItems.map(({ label, id }) => (
-                <li
-                  key={id}
-                  onClick={() => scrollTo(id)}
-                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
-                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
-                  }`}
+              {lang.toUpperCase()}
+            </button>
+
+            <button
+              aria-label="Toggle Dark Mode"
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-full text-white transition"
+              style={{ backgroundColor: colors.primary }}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {darkMode ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
                 >
-                  {label}
-                </li>
-              ))}
-            </ul>
-            <div className="flex items-center space-x-4">
-              <button
-                aria-label="Toggle Dark Mode"
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition"
-                style={{ backgroundColor: colors.primary }}
-              >
-                {darkMode ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    stroke="none"
-                  >
-                    <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                  </svg>
-                )}
-              </button>
-              <button
-                aria-label="Cycle Color Theme"
-                onClick={cycleTheme}
-                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
-                title="Cycle Color Theme"
-              >
-                🎨
-              </button>
+                  <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  stroke="none"
+                >
+                  <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                </svg>
+              )}
+            </button>
+
+            <div
+              className={`hamburger ${menuOpen ? "open" : ""} md:hidden`}
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Toggle menu"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && setMenuOpen((open) => !open)}
+            >
+              <span />
+              <span />
+              <span />
             </div>
           </div>
         </nav>
+
+        {/* Mobile Menu */}
+        <div className={`mobile-menu ${menuOpen ? "open" : ""} md:hidden`}>
+          {navItems.map(({ key, id }) => (
+            <button
+              key={id}
+              onClick={() => scrollTo(id)}
+              className="text-left font-semibold text-lg p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
 
         <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
           {/* Hero */}
@@ -546,8 +795,7 @@ export default function App() {
               transition={{ duration: 1.5 }}
               className="max-w-xl text-lg md:text-xl"
             >
-              Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
-              experiences.
+              {t("fullStack")}
             </motion.p>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -555,42 +803,25 @@ export default function App() {
               onClick={() => scrollTo("projects")}
               className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
               style={{ backgroundColor: colors.primary }}
+              aria-label={t("seeMyWork")}
+              title={t("seeMyWork")}
             >
-              See My Work
+              {t("seeMyWork")}
             </motion.button>
             <ScrollIndicator onClick={() => scrollTo("about")} />
           </section>
 
           {/* About Me */}
-          <SectionReveal id="about" colors={colors} title="About Me">
-            <p>
-              Meet Gojiya is a Solution Analyst on the Product Engineering and Development team,
-              within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the
-              ability to link business with technology to extract insights from complex data and
-              build data-driven solutions.
-            </p>
+          <SectionReveal id="about" colors={colors} title={t("about")}>
+            <p>{t("aboutDescription1")}</p>
             <br />
-            <p>
-              Meet is a graduate of the University of New Brunswick, where he earned a Master of
-              Computer Science degree. He also holds a Bachelor’s degree in Computer Engineering
-              from Gujarat Technological University. Meet is driven by technology innovation,
-              advanced analytics, adaptability, collaboration, and creativity, ultimately
-              furthering his career as well as those around him. He possesses a strong
-              entrepreneurial spirit, which fuels his passion for creating impactful solutions
-              and driving positive change within the industry and the world.
-            </p>
+            <p>{t("aboutDescription2")}</p>
             <br />
-            <p>
-              An avid learner and active listener, Meet thrives on absorbing knowledge from as
-              many people as possible, recognizing that every interaction is an opportunity to
-              gain new insights and perspectives. His extremely curious personality propels him
-              to explore new ideas, question existing paradigms, and continuously seek out
-              opportunities for learning and growth.
-            </p>
+            <p>{t("aboutDescription3")}</p>
           </SectionReveal>
 
           {/* Skills */}
-          <SectionReveal id="skills" colors={colors} title="Skills">
+          <SectionReveal id="skills" colors={colors} title={t("skills")}>
             <div className="flex flex-wrap justify-center gap-4">
               {skills.map((skill) => (
                 <span
@@ -605,44 +836,54 @@ export default function App() {
           </SectionReveal>
 
           {/* Projects */}
-          <SectionReveal id="projects" colors={colors} title="Projects">
+          <SectionReveal id="projects" colors={colors} title={t("projects")}>
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={projects[currentProject].title}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.8 }}
-                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
-              >
-                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
-                  {projects[currentProject].title}
-                </h3>
-                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                  {projects[currentProject].description}
-                </p>
+              {loadingProject ? (
+                <ProjectSkeleton colors={colors} />
+              ) : (
+                <motion.div
+                  key={projects[currentProject].title}
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.8 }}
+                  className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => e.key === "Enter" && window.open(projects[currentProject].live, "_blank")}
+                >
+                  <h3
+                    className="text-2xl font-semibold mb-4"
+                    style={{ color: colors.primary }}
+                  >
+                    {projects[currentProject].title}
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
+                    {projects[currentProject].description}
+                  </p>
 
-                <div className="flex justify-center gap-6">
-                  <a
-                    href={projects[currentProject].live}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
-                    style={{ color: colors.primary }}
-                  >
-                    Live Demo
-                  </a>
-                  <a
-                    href={projects[currentProject].link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
-                    style={{ color: colors.primary }}
-                  >
-                    GitHub
-                  </a>
-                </div>
-              </motion.div>
+                  <div className="flex justify-center gap-6">
+                    <a
+                      href={projects[currentProject].live}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover-animate font-semibold"
+                      style={{ color: colors.primary }}
+                    >
+                      Live Demo
+                    </a>
+                    <a
+                      href={projects[currentProject].link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover-animate font-semibold"
+                      style={{ color: colors.primary }}
+                    >
+                      GitHub
+                    </a>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             <div className="flex justify-center gap-4 mt-4">
@@ -651,7 +892,7 @@ export default function App() {
                   key={idx}
                   aria-label={`Go to project ${idx + 1}`}
                   className={`w-4 h-4 rounded-full ${
-                    idx === currentProject ? `bg-[var(--color-primary)]` : "bg-gray-400"
+                    idx === currentProject ? "bg-[var(--color-primary)]" : "bg-gray-400"
                   } transition`}
                   onClick={() => setCurrentProject(idx)}
                   style={{ backgroundColor: idx === currentProject ? colors.primary : undefined }}
@@ -661,27 +902,29 @@ export default function App() {
           </SectionReveal>
 
           {/* Contact */}
-          <SectionReveal id="contact" colors={colors} title="Contact Me">
+          <SectionReveal id="contact" colors={colors} title={t("contact")}>
             <form ref={formRef} onSubmit={sendEmail} className="space-y-6 text-left">
               <input
                 type="text"
                 name="user_name"
-                placeholder="Your Name"
+                placeholder={lang === "en" ? "Your Name" : "Votre nom"}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
+                autoComplete="name"
               />
               <input
                 type="email"
                 name="user_email"
-                placeholder="Your Email"
+                placeholder={lang === "en" ? "Your Email" : "Votre email"}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
+                autoComplete="email"
               />
               <textarea
                 name="message"
-                placeholder="Your Message"
+                placeholder={lang === "en" ? "Your Message" : "Votre message"}
                 rows={6}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition resize-none"
@@ -694,19 +937,29 @@ export default function App() {
                 onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
               >
-                Send Message
+                {t("sendMessage")}
               </button>
             </form>
             {contactStatus === "SUCCESS" && (
-              <p className="mt-4 text-green-500 font-semibold">Message sent successfully!</p>
+              <p className="mt-4 text-green-500 font-semibold">{t("messageSent")}</p>
             )}
             {contactStatus === "FAILED" && (
-              <p className="mt-4 text-red-500 font-semibold">
-                Oops! Something went wrong. Please try again.
-              </p>
+              <p className="mt-4 text-red-500 font-semibold">{t("messageFailed")}</p>
             )}
           </SectionReveal>
         </main>
+
+        {/* Back to Top button */}
+        {showBackToTop && (
+          <button
+            className="back-to-top"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label={t("backToTop")}
+            title={t("backToTop")}
+          >
+            ↑
+          </button>
+        )}
 
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
@@ -716,7 +969,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="hover:text-current transition"
+              className="social-icon hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
@@ -728,7 +981,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="hover:text-current transition"
+              className="social-icon hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
@@ -743,7 +996,7 @@ export default function App() {
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
-          title="Download Resume"
+          title={t("downloadResume")}
           download
           style={{ backgroundColor: colors.primary }}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
@@ -763,7 +1016,7 @@ export default function App() {
               d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0 0l-4-4m4 4l4-4M12 4v8"
             />
           </svg>
-          <span>Resume</span>
+          <span>{t("downloadResume")}</span>
         </a>
       </div>
     </>
