@@ -39,7 +39,7 @@ const themeColors = {
   },
 };
 
-// 3D Cursor component
+// 3D Cursor
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
@@ -71,7 +71,7 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive particles component
+// Interactive Particles
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
@@ -349,7 +349,7 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
-    setMenuOpen(false); // Close menu after clicking nav link
+    setMenuOpen(false);
   };
 
   const sendEmail = (e) => {
@@ -598,16 +598,20 @@ export default function App() {
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3 }}
                 className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
+                role="menu"
               >
                 {navItems.map(({ label, id }) => (
-                  <li
-                    key={id}
-                    onClick={() => scrollTo(id)}
-                    className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
-                      activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
-                    }`}
-                  >
-                    {label}
+                  <li key={id} className="border-b border-gray-200 dark:border-gray-700">
+                    <button
+                      role="menuitem"
+                      tabIndex={0}
+                      onClick={() => scrollTo(id)}
+                      className={`w-full text-left px-6 py-4 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
+                        activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
+                      }`}
+                    >
+                      {label}
+                    </button>
                   </li>
                 ))}
               </motion.ul>
