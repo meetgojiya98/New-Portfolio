@@ -75,7 +75,7 @@ function Cursor3D({ color }) {
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
-  const PARTICLE_COUNT = window.innerWidth < 640 ? 50 : 100; // fewer particles on small screens
+  const PARTICLE_COUNT = 100;
   const PARTICLE_DISTANCE = 1.7;
   const positions = useRef([]);
   const velocities = useRef([]);
@@ -110,10 +110,12 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
+      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
+      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -125,6 +127,7 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
+      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -135,6 +138,7 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
+    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -195,14 +199,6 @@ function InteractiveParticles({ color }) {
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   return (
     <Canvas
@@ -226,12 +222,7 @@ function Floating3DCanvas({ theme }) {
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls
-        autoRotate={!isMobile}
-        autoRotateSpeed={0.1}
-        enableZoom={false}
-        enablePan={false}
-      />
+      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
@@ -300,31 +291,6 @@ function SectionReveal({ id, colors, title, children }) {
   );
 }
 
-function BackToTop() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 300);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  if (!visible) return null;
-
-  return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      aria-label="Back to top"
-      className="back-to-top fixed bottom-24 right-6 p-3 rounded-full bg-[var(--color-primary)] text-white shadow-lg transition focus:outline-none"
-      tabIndex={0}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && window.scrollTo({ top: 0, behavior: "smooth" })}
-      style={{fontSize: "1.5rem", lineHeight: 1}}
-    >
-      ↑
-    </button>
-  );
-}
-
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
@@ -346,8 +312,10 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const formRef = useRef(null);
+
+  // Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -381,12 +349,22 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Close mobile menu on resize > md
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) setMobileMenuOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (!el) return;
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
+    if (mobileMenuOpen) setMobileMenuOpen(false);
   };
 
   const sendEmail = (e) => {
@@ -468,147 +446,102 @@ export default function App() {
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
         }
-        body, #root, html {
-          transition: background-color 0.4s ease, color 0.4s ease;
-        }
         .glass-card {
           background: rgba(255 255 255 / 0.15);
           backdrop-filter: saturate(180%) blur(10px);
           transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
         }
-        .glass-card:hover, .glass-card:focus-visible {
+        .glass-card:hover {
           background: rgba(255 255 255 / 0.3);
           box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px) scale(1.02);
+          transform: translateY(-5px);
           cursor: pointer;
-          outline: none;
         }
-        nav ul li, nav ul li:hover, nav ul li.active {
-          transition: color 0.3s ease;
-        }
-        nav ul li:hover, nav ul li.active {
-          color: var(--color-primary);
-          font-weight: 600;
-          position: relative;
-        }
-        nav ul li:hover::after, nav ul li.active::after {
-          content: "";
-          position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: 100%;
-          height: 2px;
-          background: var(--color-primary);
-          border-radius: 2px;
-          animation: underlineGrow 0.3s forwards;
-        }
-        @keyframes underlineGrow {
-          from { width: 0; }
-          to { width: 100%; }
-        }
-        a:hover, a:focus-visible {
-          text-decoration: underline;
-          color: var(--color-primary);
-          transition: color 0.3s ease;
-        }
-        button:hover, button:focus-visible {
-          transform: scale(1.05);
-          transition: transform 0.3s ease;
-          outline: none;
-        }
-        .back-to-top:hover, .back-to-top:focus-visible {
-          background-color: var(--color-primary-dark);
-          outline: none;
-        }
-        /* Hamburger menu styles */
-        .hamburger {
-          display: none;
-          flex-direction: column;
-          justify-content: space-around;
-          width: 25px;
-          height: 25px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          padding: 0;
+
+        /* Mobile menu overlay */
+        .mobile-menu-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          backdrop-filter: blur(4px);
           z-index: 60;
+        }
+        .mobile-menu {
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 75vw;
+          max-width: 300px;
+          height: 100vh;
+          background: var(--color-primary-light);
+          box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+          padding: 2rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+          z-index: 70;
+          transform: translateX(100%);
           transition: transform 0.3s ease;
+          color: white;
         }
-        .hamburger:focus-visible {
-          outline: 2px solid var(--color-primary);
-          outline-offset: 2px;
+        .mobile-menu.open {
+          transform: translateX(0);
         }
-        .hamburger div {
-          width: 25px;
+        .mobile-menu a {
+          font-size: 1.25rem;
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          user-select: none;
+          padding: 0.5rem 0;
+        }
+        .mobile-menu a:hover,
+        .mobile-menu a:focus {
+          color: var(--color-primary-dark);
+          text-decoration: underline;
+          outline: none;
+        }
+        .hamburger-btn {
+          cursor: pointer;
+          width: 30px;
+          height: 25px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          z-index: 100;
+        }
+        .hamburger-btn span {
+          display: block;
           height: 3px;
           background: var(--color-primary);
           border-radius: 2px;
-          transition: all 0.3s linear;
-          position: relative;
-          transform-origin: 1px;
+          transition: all 0.3s ease;
         }
-        .hamburger.open div:nth-child(1) {
-          transform: rotate(45deg);
+        .hamburger-btn.open span:nth-child(1) {
+          transform: rotate(45deg) translate(5px, 5px);
         }
-        .hamburger.open div:nth-child(2) {
+        .hamburger-btn.open span:nth-child(2) {
           opacity: 0;
-          transform: translateX(20px);
         }
-        .hamburger.open div:nth-child(3) {
-          transform: rotate(-45deg);
+        .hamburger-btn.open span:nth-child(3) {
+          transform: rotate(-45deg) translate(5px, -5px);
         }
-        @media (max-width: 767px) {
-          .hamburger {
-            display: flex;
-          }
-          nav ul {
+        /* Show dark mode & color cycle always visible on mobile */
+        .mobile-actions {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+        @media (min-width: 768px) {
+          .mobile-actions {
             display: none;
           }
-          .mobile-nav {
-            position: fixed;
-            top: 60px;
-            right: 0;
-            width: 200px;
-            background: var(--color-primary);
-            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-            border-radius: 0 0 0 8px;
-            display: flex;
-            flex-direction: column;
-            padding: 1rem;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 50;
-          }
-          .mobile-nav.open {
-            transform: translateX(0);
-          }
-          .mobile-nav a {
-            color: white;
-            padding: 0.5rem 0;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            border-bottom: 1px solid rgba(255 255 255 / 0.2);
-            transition: background-color 0.3s ease;
-          }
-          .mobile-nav a:hover, .mobile-nav a:focus-visible {
-            background-color: rgba(255 255 255 / 0.15);
-            outline: none;
-          }
-        }
-        /* Social icons hover animation */
-        footer a svg {
-          transition: stroke 0.3s ease, fill 0.3s ease;
-        }
-        footer a:hover svg, footer a:focus-visible svg {
-          stroke: var(--color-primary);
-          fill: var(--color-primary);
-          outline: none;
         }
       `}</style>
 
       <div
-        className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans transition-colors duration-700`}
+        className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
         style={{ paddingBottom: "90px" }}
       >
         <Floating3DCanvas theme={theme} />
@@ -619,120 +552,132 @@ export default function App() {
         />
 
         <nav
-          className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
-            scrolled ? "shadow-lg" : ""
-          }`}
+          className={`fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow flex items-center justify-between px-6 py-3`}
           role="navigation"
+          aria-label="Main Navigation"
         >
-          <div className="container mx-auto flex justify-between items-center px-6 py-3">
-            <div
-              onClick={() => {
-                scrollTo("hero");
-                setMobileMenuOpen(false);
-              }}
-              className="text-2xl font-bold cursor-pointer select-none"
-              tabIndex={0}
-              role="link"
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && scrollTo("hero")}
-              aria-label="Go to Home"
-            >
-              Meet Gojiya
-            </div>
-
-            {/* Desktop nav */}
-            <ul className="hidden md:flex space-x-10 font-medium text-lg">
-              {navItems.map(({ label, id }) => (
-                <li
-                  key={id}
-                  onClick={() => scrollTo(id)}
-                  className={`cursor-pointer nav-link ${
-                    activeSection === id ? "active" : ""
-                  }`}
-                  tabIndex={0}
-                  role="link"
-                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && scrollTo(id)}
-                  aria-current={activeSection === id ? "page" : undefined}
-                >
-                  {label}
-                </li>
-              ))}
-            </ul>
-
-            {/* Mobile hamburger */}
-            <button
-              className={`hamburger ${mobileMenuOpen ? "open" : ""}`}
-              aria-label="Toggle mobile menu"
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen((v) => !v)}
-            >
-              <div />
-              <div />
-              <div />
-            </button>
-
-            {/* Mobile nav menu */}
-            <nav
-              className={`mobile-nav ${mobileMenuOpen ? "open" : ""}`}
-              aria-hidden={!mobileMenuOpen}
-            >
-              {navItems.map(({ label, id }) => (
-                <a
-                  key={id}
-                  onClick={() => {
-                    scrollTo(id);
-                    setMobileMenuOpen(false);
-                  }}
-                  tabIndex={mobileMenuOpen ? 0 : -1}
-                  href={`#${id}`}
-                >
-                  {label}
-                </a>
-              ))}
-            </nav>
-
-            {/* Dark mode & theme cycle buttons */}
-            <div className="hidden md:flex items-center space-x-4">
-              <button
-                aria-label="Toggle Dark Mode"
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition"
-                style={{ backgroundColor: colors.primary }}
-              >
-                {darkMode ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    stroke="none"
-                  >
-                    <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                  </svg>
-                )}
-              </button>
-              <button
-                aria-label="Cycle Color Theme"
-                onClick={cycleTheme}
-                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
-                title="Cycle Color Theme"
-              >
-                🎨
-              </button>
-            </div>
+          <div
+            onClick={() => scrollTo("hero")}
+            className="text-2xl font-bold cursor-pointer select-none"
+          >
+            Meet Gojiya
           </div>
+
+          {/* Desktop nav */}
+          <ul className="hidden md:flex space-x-10 font-medium text-lg">
+            {navItems.map(({ label, id }) => (
+              <li
+                key={id}
+                onClick={() => scrollTo(id)}
+                className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
+                  activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
+                }`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") scrollTo(id);
+                }}
+                aria-current={activeSection === id ? "page" : undefined}
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
+
+          {/* Mobile actions */}
+          <div className="flex items-center space-x-4 md:hidden mobile-actions">
+            <button
+              aria-label="Toggle Dark Mode"
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-full text-white transition"
+              style={{ backgroundColor: colors.primary }}
+              title="Toggle Dark Mode"
+            >
+              {darkMode ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  stroke="none"
+                >
+                  <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                </svg>
+              )}
+            </button>
+            <button
+              aria-label="Cycle Color Theme"
+              onClick={cycleTheme}
+              className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
+              title="Cycle Color Theme"
+            >
+              🎨
+            </button>
+          </div>
+
+          {/* Hamburger for mobile */}
+          <button
+            aria-label="Toggle Menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className={`hamburger-btn md:hidden ${mobileMenuOpen ? "open" : ""}`}
+            title="Toggle Menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </nav>
+
+        {/* Mobile menu overlay and menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <>
+              <motion.div
+                className="mobile-menu-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <motion.nav
+                className="mobile-menu open"
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                role="menu"
+              >
+                {navItems.map(({ label, id }) => (
+                  <a
+                    key={id}
+                    onClick={() => scrollTo(id)}
+                    role="menuitem"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") scrollTo(id);
+                    }}
+                    href="#"
+                  >
+                    {label}
+                  </a>
+                ))}
+              </motion.nav>
+            </>
+          )}
+        </AnimatePresence>
 
         <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
           {/* Hero */}
@@ -823,14 +768,6 @@ export default function App() {
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.8 }}
                 className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
-                tabIndex={0}
-                role="group"
-                aria-label={`Project: ${projects[currentProject].title}`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    window.open(projects[currentProject].live, "_blank");
-                  }
-                }}
               >
                 <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
                   {projects[currentProject].title}
@@ -954,8 +891,6 @@ export default function App() {
             </a>
           </div>
         </footer>
-
-        <BackToTop />
 
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
