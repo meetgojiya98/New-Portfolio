@@ -460,7 +460,7 @@ export default function App() {
         />
 
         <nav
-          className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
+          className={`fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
           }`}
         >
@@ -473,7 +473,7 @@ export default function App() {
             </div>
 
             {/* Desktop Nav */}
-            <ul className="hidden md:flex space-x-10 font-medium text-lg items-center">
+            <ul className="hidden md:flex space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
@@ -485,54 +485,10 @@ export default function App() {
                   {label}
                 </li>
               ))}
-
-              {/* Dark mode & theme buttons on desktop */}
-              <li>
-                <button
-                  aria-label="Toggle Dark Mode"
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 rounded-full text-white transition ml-6"
-                  style={{ backgroundColor: colors.primary }}
-                >
-                  {darkMode ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      stroke="none"
-                    >
-                      <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                    </svg>
-                  )}
-                </button>
-              </li>
-              <li>
-                <button
-                  aria-label="Cycle Color Theme"
-                  onClick={cycleTheme}
-                  className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition ml-2"
-                  title="Cycle Color Theme"
-                >
-                  🎨
-                </button>
-              </li>
             </ul>
 
-            {/* Mobile Controls */}
-            <div className="flex items-center space-x-4 md:hidden">
+            {/* Theme & Dark Mode toggles: visible on all screen sizes */}
+            <div className="flex items-center space-x-4">
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
@@ -572,52 +528,66 @@ export default function App() {
                 🎨
               </button>
 
-              {/* Hamburger Menu Toggle */}
-              <button
-                aria-label="Toggle menu"
-                onClick={() => setMenuOpen((open) => !open)}
-                className="p-2 rounded-md border border-gray-500 dark:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)]"
-              >
-                <svg
-                  className="h-6 w-6 text-gray-800 dark:text-gray-200"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+              {/* Hamburger Menu Toggle: only visible on mobile */}
+              <div className="md:hidden">
+                <button
+                  aria-label="Toggle menu"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="p-2 rounded-md border border-gray-500 dark:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)]"
                 >
-                  {menuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
+                  <svg
+                    className="h-6 w-6 text-gray-800 dark:text-gray-200"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    {menuOpen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    )}
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Mobile Menu */}
           <AnimatePresence>
             {menuOpen && (
-              <motion.ul
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
-              >
-                {navItems.map(({ label, id }) => (
-                  <li
-                    key={id}
-                    onClick={() => scrollTo(id)}
-                    className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
-                      activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
-                    }`}
-                  >
-                    {label}
-                  </li>
-                ))}
-              </motion.ul>
+              <>
+                <motion.div
+                  key="overlay"
+                  onClick={() => setMenuOpen(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black z-40"
+                  aria-hidden="true"
+                />
+                <motion.ul
+                  key="menu"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="fixed top-[56px] left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+                >
+                  {navItems.map(({ label, id }) => (
+                    <li
+                      key={id}
+                      onClick={() => scrollTo(id)}
+                      className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
+                        activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
+                      }`}
+                    >
+                      {label}
+                    </li>
+                  ))}
+                </motion.ul>
+              </>
             )}
           </AnimatePresence>
         </nav>
