@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
+import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +40,96 @@ const themeColors = {
     particlesColor: "#a78bfa",
   },
 };
+
+// Interactive particle field component
+function InteractiveParticles({ color }) {
+  const pointsCount = 200;
+  const positions = useRef(new Float32Array(pointsCount * 3));
+  const velocities = useRef(new Float32Array(pointsCount * 3));
+  const pointsRef = useRef();
+  const mouse = useRef(new THREE.Vector2(-1000, -1000)); // start off screen
+
+  // Initialize positions and velocities
+  useEffect(() => {
+    for (let i = 0; i < pointsCount; i++) {
+      positions.current[i * 3] = (Math.random() - 0.5) * 10;
+      positions.current[i * 3 + 1] = (Math.random() - 0.5) * 10;
+      positions.current[i * 3 + 2] = (Math.random() - 0.5) * 10;
+
+      velocities.current[i * 3] = (Math.random() - 0.5) * 0.002;
+      velocities.current[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
+      velocities.current[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
+    }
+  }, []);
+
+  // Update mouse on move
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = -(e.clientY / window.innerHeight) * 2 + 1;
+      mouse.current.set(x * 5, y * 5);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  useFrame(() => {
+    for (let i = 0; i < pointsCount; i++) {
+      let ix = i * 3,
+        iy = ix + 1,
+        iz = ix + 2;
+
+      // Update position by velocity
+      positions.current[ix] += velocities.current[ix];
+      positions.current[iy] += velocities.current[iy];
+      positions.current[iz] += velocities.current[iz];
+
+      // Bounce back at boundaries
+      for (let axis = 0; axis < 3; axis++) {
+        if (positions.current[ix + axis] > 5) velocities.current[ix + axis] *= -1;
+        else if (positions.current[ix + axis] < -5) velocities.current[ix + axis] *= -1;
+      }
+
+      // Repel from mouse position on XY plane
+      const dx = positions.current[ix] - mouse.current.x;
+      const dy = positions.current[iy] - mouse.current.y;
+      const distSq = dx * dx + dy * dy;
+      const repelRadius = 1.5;
+
+      if (distSq < repelRadius * repelRadius && distSq > 0) {
+        const force = (repelRadius - Math.sqrt(distSq)) * 0.004;
+        const normX = dx / Math.sqrt(distSq);
+        const normY = dy / Math.sqrt(distSq);
+        velocities.current[ix] += normX * force;
+        velocities.current[iy] += normY * force;
+      }
+    }
+
+    if (pointsRef.current) {
+      pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions.current}
+          count={pointsCount}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color={color}
+        size={0.04}
+        sizeAttenuation={true}
+        transparent
+        opacity={0.75}
+      />
+    </points>
+  );
+}
 
 // 3D Shapes
 function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
@@ -120,6 +211,7 @@ function Floating3DCanvas({ theme }) {
       <directionalLight position={[0, 10, 5]} intensity={1} />
       <pointLight position={[10, 10, 10]} intensity={0.7} />
       <Suspense fallback={null}>
+        <InteractiveParticles color={colors.particlesColor} />
         <RotatingTorusKnot
           position={[-2, 0, 0]}
           colorPrimary={colors.threeColor1}
