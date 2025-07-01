@@ -39,64 +39,58 @@ const themeColors = {
   },
 };
 
-// -----------
-// 3D Cursor Component
-// -----------
+// 3D Cursor
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
-
   const pos = useRef([0, 0]);
+
   useFrame(() => {
-    pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.1;
-    pos.current[1] += (mouse.y * viewport.height * 0.5 - pos.current[1]) * 0.1;
+    pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.15;
+    pos.current[1] += (mouse.y * viewport.height * 0.5 - pos.current[1]) * 0.15;
     if (meshRef.current) {
       meshRef.current.position.x = pos.current[0];
       meshRef.current.position.y = pos.current[1];
-      meshRef.current.rotation.x += 0.01;
-      meshRef.current.rotation.y += 0.015;
-      meshRef.current.scale.lerp([1.3, 1.3, 1.3], 0.05);
+      meshRef.current.rotation.x += 0.02;
+      meshRef.current.rotation.y += 0.025;
+      meshRef.current.scale.lerp([1.5, 1.5, 1.5], 0.07);
     }
   });
 
   return (
     <mesh ref={meshRef}>
-      <icosahedronGeometry args={[0.2, 0]} />
+      <icosahedronGeometry args={[0.25, 0]} />
       <meshStandardMaterial
         color={color}
-        metalness={0.9}
-        roughness={0.2}
+        metalness={0.95}
+        roughness={0.1}
         emissive={color}
-        emissiveIntensity={0.5}
+        emissiveIntensity={0.7}
       />
     </mesh>
   );
 }
 
-// -----------
-// Interactive Particles Component
-// -----------
-
+// Interactive Particles
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
-  const PARTICLE_COUNT = 60;
-  const PARTICLE_DISTANCE = 1.5;
+  const PARTICLE_COUNT = 100;
+  const PARTICLE_DISTANCE = 1.7;
   const positions = useRef([]);
   const velocities = useRef([]);
 
-  // Initialize positions and velocities once
   if (positions.current.length === 0) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       positions.current.push([
-        (Math.random() - 0.5) * viewport.width * 0.8,
-        (Math.random() - 0.5) * viewport.height * 0.8,
-        (Math.random() - 0.5) * 4,
+        (Math.random() - 0.5) * viewport.width * 1.2,
+        (Math.random() - 0.5) * viewport.height * 1.2,
+        (Math.random() - 0.5) * 5,
       ]);
       velocities.current.push([
-        (Math.random() - 0.5) * 0.005,
-        (Math.random() - 0.5) * 0.005,
-        (Math.random() - 0.5) * 0.005,
+        (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.01,
       ]);
     }
   }
@@ -108,46 +102,43 @@ function InteractiveParticles({ color }) {
     const ptsPositions = pointsRef.current.geometry.attributes.position.array;
     const linesPositions = linesRef.current.geometry.attributes.position.array;
 
-    // Update particle positions
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       let p = positions.current[i];
       let v = velocities.current[i];
 
-      // Update position by velocity
       for (let axis = 0; axis < 3; axis++) {
         p[axis] += v[axis];
       }
 
-      // Bounce at boundaries
-      if (p[0] < -viewport.width / 2 || p[0] > viewport.width / 2) v[0] = -v[0];
-      if (p[1] < -viewport.height / 2 || p[1] > viewport.height / 2) v[1] = -v[1];
-      if (p[2] < -2 || p[2] > 2) v[2] = -v[2];
+      // Bounce boundaries bigger for full viewport + some margin
+      if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
+      if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
+      if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Mouse repulsion
+      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
       const dy = p[1] - my;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 1) {
-        const force = (1 - dist) * 0.02;
+      if (dist < 1.5) {
+        const force = (1.5 - dist) * 0.05;
         v[0] += (dx / dist) * force;
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity
-      v[0] = Math.min(Math.max(v[0], -0.02), 0.02);
-      v[1] = Math.min(Math.max(v[1], -0.02), 0.02);
-      v[2] = Math.min(Math.max(v[2], -0.02), 0.02);
+      // Clamp velocity with a bit more speed for liveliness
+      v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
+      v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
+      v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
 
-      // Update points buffer positions
       ptsPositions[i * 3] = p[0];
       ptsPositions[i * 3 + 1] = p[1];
       ptsPositions[i * 3 + 2] = p[2];
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines between close particles
+    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -184,10 +175,11 @@ function InteractiveParticles({ color }) {
         </bufferGeometry>
         <pointsMaterial
           color={color}
-          size={0.08}
+          size={0.12}
           sizeAttenuation
           transparent
-          opacity={0.9}
+          opacity={0.95}
+          depthWrite={false}
         />
       </points>
       <lineSegments ref={linesRef}>
@@ -199,15 +191,11 @@ function InteractiveParticles({ color }) {
             itemSize={3}
           />
         </bufferGeometry>
-        <lineBasicMaterial color={color} transparent opacity={0.3} />
+        <lineBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} />
       </lineSegments>
     </>
   );
 }
-
-// -----------
-// Floating3DCanvas with Canvas & Controls
-// -----------
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
@@ -222,35 +210,39 @@ function Floating3DCanvas({ theme }) {
         height: "100vh",
         pointerEvents: "auto",
         zIndex: 1,
-        opacity: 0.7,
+        opacity: 0.8,
       }}
-      camera={{ position: [0, 0, 10], fov: 60 }}
+      camera={{ position: [0, 0, 12], fov: 65 }}
       gl={{ antialias: true, toneMappingExposure: 1.5 }}
     >
       <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 5, 5]} intensity={0.7} />
+      <directionalLight position={[5, 5, 5]} intensity={0.8} />
       <pointLight position={[-5, -5, 5]} intensity={0.5} />
       <Suspense fallback={null}>
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls autoRotate autoRotateSpeed={0.2} enableZoom={false} enablePan={false} />
+      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
 
-// -----------
-// Scroll Indicator Component
-// -----------
-
-function ScrollIndicator() {
+function ScrollIndicator({ onClick }) {
   return (
-    <motion.div
+    <motion.button
+      onClick={onClick}
       initial={{ opacity: 0, y: 0 }}
       animate={{ opacity: 1, y: [0, 15, 0] }}
       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-12 left-1/2 transform -translate-x-1/2"
+      className="absolute bottom-12 left-1/2 transform -translate-x-1/2 focus:outline-none"
       aria-label="Scroll down indicator"
+      title="Scroll down"
+      style={{
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        padding: 0,
+      }}
     >
       <svg
         className="w-8 h-8 text-gray-500 dark:text-gray-300"
@@ -261,13 +253,9 @@ function ScrollIndicator() {
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
       </svg>
-    </motion.div>
+    </motion.button>
   );
 }
-
-// -----------
-// SectionReveal component for fade-in
-// -----------
 
 function SectionReveal({ id, colors, title, children }) {
   const controls = useAnimation();
@@ -570,10 +558,10 @@ export default function App() {
             >
               See My Work
             </motion.button>
-            <ScrollIndicator />
+            <ScrollIndicator onClick={() => scrollTo("about")} />
           </section>
 
-          {/* About Me Section */}
+          {/* About Me */}
           <SectionReveal id="about" colors={colors} title="About Me">
             <p>
               Meet Gojiya is a Solution Analyst on the Product Engineering and Development team,
@@ -616,7 +604,7 @@ export default function App() {
             </div>
           </SectionReveal>
 
-          {/* Projects Carousel */}
+          {/* Projects */}
           <SectionReveal id="projects" colors={colors} title="Projects">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
