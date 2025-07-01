@@ -110,12 +110,10 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
-      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -127,7 +125,6 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -138,7 +135,6 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -353,10 +349,7 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
-
-    if (menuOpen) {
-      setTimeout(() => setMenuOpen(false), 300);
-    }
+    setMenuOpen(false);
   };
 
   const sendEmail = (e) => {
@@ -467,16 +460,17 @@ export default function App() {
             scrolled ? "shadow-lg" : ""
           }`}
         >
-          <div className="container mx-auto flex justify-between items-center px-6 py-3">
+          <div className="container mx-auto flex items-center px-6 py-3">
+            {/* Left: Brand */}
             <div
               onClick={() => scrollTo("hero")}
-              className="text-2xl font-bold cursor-pointer select-none"
+              className="text-2xl font-bold cursor-pointer select-none flex-shrink-0"
             >
               Meet Gojiya
             </div>
 
-            {/* Desktop Nav */}
-            <ul className="hidden md:flex space-x-10 font-medium text-lg">
+            {/* Center: Nav Links */}
+            <ul className="hidden md:flex flex-grow justify-center space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
@@ -490,8 +484,8 @@ export default function App() {
               ))}
             </ul>
 
-            {/* Mobile Controls */}
-            <div className="flex items-center space-x-4 md:hidden">
+            {/* Right: Desktop Controls */}
+            <div className="hidden md:flex items-center space-x-4 flex-shrink-0">
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
@@ -530,8 +524,48 @@ export default function App() {
               >
                 🎨
               </button>
+            </div>
 
-              {/* Hamburger Menu Toggle */}
+            {/* Mobile Controls */}
+            <div className="flex md:hidden items-center space-x-4 ml-auto">
+              <button
+                aria-label="Toggle Dark Mode"
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-full text-white transition"
+                style={{ backgroundColor: colors.primary }}
+              >
+                {darkMode ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke="none"
+                  >
+                    <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                aria-label="Cycle Color Theme"
+                onClick={cycleTheme}
+                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
+                title="Cycle Color Theme"
+              >
+                🎨
+              </button>
               <button
                 aria-label="Toggle menu"
                 onClick={() => setMenuOpen((open) => !open)}
@@ -555,7 +589,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Mobile Menu */}
           <AnimatePresence>
             {menuOpen && (
               <motion.ul
