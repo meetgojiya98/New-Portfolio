@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
 
@@ -12,250 +10,55 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-// Define theme colors
+// Define your theme colors
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
     primaryDark: "#d97706",
-    threeColor1: "#d97706",
-    threeColor2: "#f59e0b",
-    particlesColor: "#fbbf24",
+    primaryLight: "#fbbf24",
+    particlesColor1: "#fbbf24",
+    particlesColor2: "#d97706",
   },
   blue: {
     primary: "#3b82f6",
     primaryDark: "#2563eb",
-    threeColor1: "#2563eb",
-    threeColor2: "#3b82f6",
-    particlesColor: "#3b82f6",
+    primaryLight: "#60a5fa",
+    particlesColor1: "#60a5fa",
+    particlesColor2: "#2563eb",
   },
   violet: {
     primary: "#8b5cf6",
     primaryDark: "#7c3aed",
-    threeColor1: "#7c3aed",
-    threeColor2: "#8b5cf6",
-    particlesColor: "#a78bfa",
+    primaryLight: "#a78bfa",
+    particlesColor1: "#a78bfa",
+    particlesColor2: "#7c3aed",
   },
 };
 
-// Particle with connecting lines & interactive mouse repulsion
-function ParticleNetwork({ color }) {
-  const canvasRef = useRef(null);
-  const particles = useRef([]);
-  const mouse = useRef({ x: null, y: null, radius: 120 });
-
-  // Initialize particles
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    let animationFrameId;
-    const particlesArray = [];
-    const maxDistance = 150;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    // Particle class
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 2 + 1;
-        this.baseX = this.x;
-        this.baseY = this.y;
-        this.density = Math.random() * 30 + 1;
-        this.vx = (Math.random() - 0.5) * 0.3;
-        this.vy = (Math.random() - 0.5) * 0.3;
-      }
-
-      draw() {
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.x > canvas.width || this.x < 0) this.vx = -this.vx;
-        if (this.y > canvas.height || this.y < 0) this.vy = -this.vy;
-
-        // Mouse interaction: repulse particles if near mouse
-        if (mouse.current.x && mouse.current.y) {
-          const dx = this.x - mouse.current.x;
-          const dy = this.y - mouse.current.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < mouse.current.radius) {
-            const angle = Math.atan2(dy, dx);
-            const force = (mouse.current.radius - dist) / mouse.current.radius;
-            const forceX = Math.cos(angle) * force * this.density;
-            const forceY = Math.sin(angle) * force * this.density;
-            this.vx += forceX;
-            this.vy += forceY;
-          } else {
-            // Slow back to base velocity
-            this.vx *= 0.95;
-            this.vy *= 0.95;
-          }
-        }
-
-        this.draw();
-      }
-    }
-
-    // Create particles
-    for (let i = 0; i < 120; i++) {
-      particlesArray.push(new Particle());
-    }
-    particles.current = particlesArray;
-
-    const connect = () => {
-      for (let a = 0; a < particlesArray.length; a++) {
-        for (let b = a + 1; b < particlesArray.length; b++) {
-          const dx = particlesArray[a].x - particlesArray[b].x;
-          const dy = particlesArray[a].y - particlesArray[b].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < maxDistance) {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 0.2;
-            ctx.globalAlpha = 1 - distance / maxDistance;
-            ctx.beginPath();
-            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-          }
-        }
-      }
-    };
-
-    // Animation loop
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particlesArray.forEach((p) => p.update());
-      connect();
-      animationFrameId = requestAnimationFrame(animate);
-    };
-    animate();
-
-    // Mouse move handler
-    const mouseMoveHandler = (e) => {
-      mouse.current.x = e.clientX;
-      mouse.current.y = e.clientY;
-    };
-
-    const mouseLeaveHandler = () => {
-      mouse.current.x = null;
-      mouse.current.y = null;
-    };
-
-    window.addEventListener("mousemove", mouseMoveHandler);
-    window.addEventListener("mouseout", mouseLeaveHandler);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", mouseMoveHandler);
-      window.removeEventListener("mouseout", mouseLeaveHandler);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [color]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-label="Interactive particle background"
-      role="img"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 0,
-        pointerEvents: "none",
-        userSelect: "none",
-        opacity: 0.85,
-        backgroundColor: "transparent",
-      }}
-    />
-  );
+// Ripple effect helper for buttons
+function createRipple(event) {
+  const button = event.currentTarget;
+  const circle = document.createElement("span");
+  const diameter = Math.max(button.clientWidth, button.clientHeight);
+  const radius = diameter / 2;
+  circle.style.width = circle.style.height = `${diameter}px`;
+  circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+  circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+  circle.classList.add("ripple");
+  const ripple = button.getElementsByClassName("ripple")[0];
+  if (ripple) ripple.remove();
+  button.appendChild(circle);
 }
 
-// Animated Scroll Indicator Component
-function ScrollIndicator({ sections, activeSection, onClick }) {
-  return (
-    <nav
-      aria-label="Scroll navigation"
-      className="fixed right-6 top-1/2 transform -translate-y-1/2 z-50 flex flex-col gap-3"
-    >
-      {sections.map(({ id }) => (
-        <button
-          key={id}
-          onClick={() => onClick(id)}
-          aria-current={activeSection === id ? "true" : undefined}
-          aria-label={`Scroll to ${id}`}
-          className={`w-4 h-4 rounded-full transition-colors duration-300
-            ${activeSection === id ? "bg-blue-600 dark:bg-blue-400 shadow-lg" : "bg-gray-400 dark:bg-gray-600"}
-            focus:outline-none focus:ring-2 focus:ring-blue-400`}
-          style={{ cursor: "pointer" }}
-        />
-      ))}
-    </nav>
-  );
-}
-
-// Button Ripple Effect Hook
-function useRipple() {
-  const createRipple = (event) => {
-    const button = event.currentTarget;
-    const circle = document.createElement("span");
-    const diameter = Math.max(button.clientWidth, button.clientHeight);
-    const radius = diameter / 2;
-    circle.style.width = circle.style.height = `${diameter}px`;
-    circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
-    circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
-    circle.classList.add("ripple");
-    const ripple = button.getElementsByClassName("ripple")[0];
-    if (ripple) ripple.remove();
-    button.appendChild(circle);
-  };
-  return createRipple;
-}
-
-const rippleStyle = `
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  animation: ripple-animation 600ms linear;
-  pointer-events: none;
-  transform: scale(0);
-}
-@keyframes ripple-animation {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-`;
-
-// Fade-in section wrapper using Intersection Observer
-function FadeInSection({ children, className }) {
+// Fade in section component using IntersectionObserver
+function FadeInSection({ children }) {
   const ref = useRef();
   const [isVisible, setVisible] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setVisible(true);
-      },
-      { threshold: 0.2 }
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => {
@@ -266,7 +69,7 @@ function FadeInSection({ children, className }) {
   return (
     <div
       ref={ref}
-      className={`${className} transition-opacity duration-900 ease-out ${
+      className={`transition-opacity duration-700 ease-in-out transform ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
       }`}
       style={{ willChange: "opacity, transform" }}
@@ -276,16 +79,175 @@ function FadeInSection({ children, className }) {
   );
 }
 
-// 3D Mouse Cursor Glow Effect
-function Cursor3DGlow() {
-  const cursorRef = useRef();
-  useEffect(() => {
-    const cursor = cursorRef.current;
-    if (!cursor) return;
+// 2D Particle Network Background Canvas
+function ParticleNetwork({ theme }) {
+  const canvasRef = useRef(null);
+  const animationFrameId = useRef(null);
 
-    const moveCursor = (e) => {
-      cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    const colors = themeColors[theme] || themeColors.saffron;
+    const color1 = colors.particlesColor1;
+    const color2 = colors.particlesColor2;
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.radius = Math.random() * 2 + 1;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.phase = Math.random() * 2 * Math.PI; // for pulsing effect
+      }
+      draw() {
+        const gradient = ctx.createRadialGradient(
+          this.x,
+          this.y,
+          0,
+          this.x,
+          this.y,
+          this.radius * 5
+        );
+        gradient.addColorStop(0, color1);
+        gradient.addColorStop(1, "transparent");
+
+        ctx.beginPath();
+        ctx.fillStyle = gradient;
+        ctx.shadowColor = color2;
+        ctx.shadowBlur = 10;
+        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.phase += 0.05;
+        this.radius = 1.5 + Math.sin(this.phase) * 1.2;
+
+        if (this.x < 0 || this.x > width) this.vx = -this.vx;
+        if (this.y < 0 || this.y > height) this.vy = -this.vy;
+      }
+    }
+
+    // Create particles
+    const particlesCount = Math.floor((width * height) / 15000);
+    const particles = [];
+    for (let i = 0; i < particlesCount; i++) {
+      particles.push(new Particle());
+    }
+
+    // Track mouse
+    const mouse = { x: null, y: null, radius: 100 };
+    function onMouseMove(e) {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    }
+    function onMouseLeave() {
+      mouse.x = null;
+      mouse.y = null;
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseout", onMouseLeave);
+
+    // Draw connections with smooth curves
+    function connectParticles() {
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(100, 150, 255, ${1 - dist / 150})`;
+            ctx.lineWidth = 1;
+            // Bezier control points for elegant curved lines
+            const cx = (particles[i].x + particles[j].x) / 2 + Math.sin(dist * 0.05) * 20;
+            const cy = (particles[i].y + particles[j].y) / 2 + Math.cos(dist * 0.05) * 20;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.quadraticCurveTo(cx, cy, particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      particles.forEach((p) => {
+        // Mouse repulsion effect
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < mouse.radius) {
+            const angle = Math.atan2(dy, dx);
+            const repulseFactor = (mouse.radius - dist) / mouse.radius;
+            p.vx += Math.cos(angle) * repulseFactor * 0.3;
+            p.vy += Math.sin(angle) * repulseFactor * 0.3;
+          }
+        }
+
+        p.update();
+        p.draw();
+      });
+
+      connectParticles();
+
+      animationFrameId.current = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    function handleResize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId.current);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseout", onMouseLeave);
     };
+  }, [theme]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 1,
+        pointerEvents: "none",
+        userSelect: "none",
+        opacity: 0.75,
+        backgroundColor: "transparent",
+      }}
+    />
+  );
+}
+
+// 3D Mouse cursor glow effect
+function Cursor3DGlow() {
+  const cursorRef = useRef(null);
+
+  useEffect(() => {
+    function moveCursor(e) {
+      if (cursorRef.current) {
+        cursorRef.current.style.left = e.clientX + "px";
+        cursorRef.current.style.top = e.clientY + "px";
+      }
+    }
     window.addEventListener("mousemove", moveCursor);
     return () => window.removeEventListener("mousemove", moveCursor);
   }, []);
@@ -293,24 +255,30 @@ function Cursor3DGlow() {
   return (
     <div
       ref={cursorRef}
-      aria-hidden="true"
       style={{
         position: "fixed",
-        top: 0,
         left: 0,
-        width: "30px",
-        height: "30px",
-        borderRadius: "50%",
+        top: 0,
         pointerEvents: "none",
-        background: "rgba(59, 130, 246, 0.4)", // blue glow
-        boxShadow: "0 0 15px 5px rgba(59, 130, 246, 0.6)",
-        transform: "translate3d(-50%, -50%, 0)",
-        transition: "transform 0.1s ease-out",
+        width: "40px",
+        height: "40px",
+        marginLeft: "-20px",
+        marginTop: "-20px",
+        borderRadius: "50%",
+        background:
+          "radial-gradient(circle at center, rgba(59,130,246,0.35), transparent 60%)",
+        filter: "blur(8px)",
+        transition: "transform 0.15s ease",
         zIndex: 9999,
       }}
     />
   );
 }
+
+// Replace these with your EmailJS credentials
+const EMAILJS_SERVICE_ID = "service_i6dqi68";
+const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
+const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
@@ -321,27 +289,21 @@ export default function App() {
     return validThemes.includes(saved) ? saved : "blue";
   });
 
-  // Dark mode enabled by default and sync with system preference on first load
+  // DARK MODE ENABLED BY DEFAULT if no saved value
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
-    if (saved !== null) return saved === "true";
-    // Use system preference
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return saved === null ? true : saved === "true";
   });
 
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
   const formRef = useRef(null);
-  const createRipple = useRipple();
 
-  // Store theme in localStorage
   useEffect(() => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Store dark mode in localStorage and update html class
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode);
     const html = document.documentElement;
@@ -349,16 +311,14 @@ export default function App() {
     else html.classList.remove("dark");
   }, [darkMode]);
 
-  // Scroll progress and active section tracking
   useEffect(() => {
-    const sections = navItems.map(({ id }) => document.getElementById(id));
-    const onScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.body.scrollHeight - window.innerHeight;
-      setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
-      setScrolled(scrollTop > 30);
+    function onScroll() {
+      setScrolled(window.scrollY > 30);
 
+      // Determine active section
+      const sections = navItems.map(({ id }) => document.getElementById(id));
       let current = "hero";
+      const scrollTop = window.scrollY;
       sections.forEach((section) => {
         if (section) {
           const offsetTop = section.offsetTop - 120;
@@ -366,12 +326,11 @@ export default function App() {
         }
       });
       setActiveSection(current);
-    };
+    }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Smooth scroll to section
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -380,16 +339,16 @@ export default function App() {
     window.scrollTo({ top: y, behavior: "smooth" });
   };
 
-  // EmailJS form send
   const sendEmail = (e) => {
     e.preventDefault();
     setContactStatus(null);
+
     emailjs
       .sendForm(
-        "service_i6dqi68",
-        "template_mrty8sn",
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
         formRef.current,
-        "bqXMM_OmpPWcc1AMi"
+        EMAILJS_USER_ID
       )
       .then(() => {
         setContactStatus("SUCCESS");
@@ -460,35 +419,16 @@ export default function App() {
 
   return (
     <>
-      {/* Ripple style */}
-      <style>{rippleStyle}</style>
+      {/* Background particle network */}
+      <ParticleNetwork theme={theme} />
 
-      {/* 3D Cursor Glow */}
+      {/* 3D Mouse cursor glow */}
       <Cursor3DGlow />
 
       <div
         className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
         style={{ paddingBottom: "90px" }}
       >
-        {/* Particle Network Background */}
-        <ParticleNetwork color={colors.particlesColor} />
-
-        {/* Scroll Progress Bar */}
-        <div
-          className="fixed top-0 left-0 h-1 z-50 transition-all"
-          style={{
-            width: `${scrollProgress}%`,
-            backgroundColor: colors.primary,
-          }}
-        />
-
-        {/* Scroll Indicator */}
-        <ScrollIndicator
-          sections={navItems}
-          activeSection={activeSection}
-          onClick={scrollTo}
-        />
-
         {/* Navbar */}
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
@@ -497,12 +437,12 @@ export default function App() {
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
-              onClick={() => scrollTo("hero")}
-              className="text-2xl font-bold cursor-pointer select-none"
-              tabIndex={0}
               role="button"
+              tabIndex={0}
               aria-label="Go to top"
+              onClick={() => scrollTo("hero")}
               onKeyDown={(e) => e.key === "Enter" && scrollTo("hero")}
+              className="text-2xl font-bold cursor-pointer select-none"
             >
               Meet Gojiya
             </div>
@@ -602,12 +542,10 @@ export default function App() {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  createRipple(e);
-                  scrollTo("projects");
-                }}
-                className="relative overflow-hidden px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
+                onClick={() => scrollTo("projects")}
+                className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10 relative overflow-hidden"
                 style={{ backgroundColor: colors.primary }}
+                onMouseDown={createRipple}
               >
                 See My Work
               </motion.button>
@@ -638,28 +576,30 @@ export default function App() {
                 className="text-lg max-w-3xl mx-auto leading-relaxed text-justify"
               >
                 <p>
-                  Meet Gojiya is a Solution Analyst on the Product Engineering and Development team,
-                  within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the
-                  ability to link business with technology to extract insights from complex data and
-                  build data-driven solutions.
+                  Meet Gojiya is a Solution Analyst on the Product Engineering and
+                  Development team, within the Engineering, AI, and Data offering at
+                  Deloitte Canada. Meet has the ability to link business with technology
+                  to extract insights from complex data and build data-driven solutions.
                 </p>
                 <br />
                 <p>
-                  Meet is a graduate of the University of New Brunswick, where he earned a Master of
-                  Computer Science degree. He also holds a Bachelor’s degree in Computer Engineering
-                  from Gujarat Technological University. Meet is driven by technology innovation,
-                  advanced analytics, adaptability, collaboration, and creativity, ultimately
-                  furthering his career as well as those around him. He possesses a strong
-                  entrepreneurial spirit, which fuels his passion for creating impactful solutions and
-                  driving positive change within the industry and the world.
+                  Meet is a graduate of the University of New Brunswick, where he earned
+                  a Master of Computer Science degree. He also holds a Bachelor’s degree
+                  in Computer Engineering from Gujarat Technological University. Meet is
+                  driven by technology innovation, advanced analytics, adaptability,
+                  collaboration, and creativity, ultimately furthering his career as well
+                  as those around him. He possesses a strong entrepreneurial spirit, which
+                  fuels his passion for creating impactful solutions and driving positive
+                  change within the industry and the world.
                 </p>
                 <br />
                 <p>
-                  An avid learner and active listener, Meet thrives on absorbing knowledge from as
-                  many people as possible, recognizing that every interaction is an opportunity to
-                  gain new insights and perspectives. His extremely curious personality propels him
-                  to explore new ideas, question existing paradigms, and continuously seek out
-                  opportunities for learning and growth.
+                  An avid learner and active listener, Meet thrives on absorbing knowledge
+                  from as many people as possible, recognizing that every interaction is
+                  an opportunity to gain new insights and perspectives. His extremely
+                  curious personality propels him to explore new ideas, question existing
+                  paradigms, and continuously seek out opportunities for learning and
+                  growth.
                 </p>
               </motion.p>
             </section>
@@ -690,7 +630,7 @@ export default function App() {
                 {skills.map((skill) => (
                   <span
                     key={skill}
-                    className="px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition transform hover:scale-110 hover:shadow-xl"
+                    className="px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition transform hover:scale-110 hover:shadow-2xl"
                     style={{ backgroundColor: colors.primary }}
                   >
                     {skill}
@@ -724,10 +664,12 @@ export default function App() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -100 }}
                   transition={{ duration: 0.8 }}
-                  className="block mx-auto max-w-3xl p-8 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer select-none transition-transform transform hover:scale-[1.03] hover:shadow-2xl"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Project: ${projects[currentProject].title}`}
+                  className="block mx-auto max-w-3xl p-8 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg cursor-default select-none relative overflow-hidden"
+                  onMouseDown={createRipple}
+                  style={{
+                    border: `1px solid ${colors.primaryLight}`,
+                    boxShadow: `0 0 15px ${colors.primaryLight}`,
+                  }}
                 >
                   <h3
                     className="text-2xl font-semibold mb-4"
@@ -767,15 +709,12 @@ export default function App() {
                   <button
                     key={idx}
                     aria-label={`Go to project ${idx + 1}`}
-                    className={`w-4 h-4 rounded-full transition-colors duration-300 ${
-                      idx === currentProject
-                        ? "bg-blue-600 dark:bg-blue-400 shadow-lg"
-                        : "bg-gray-400 dark:bg-gray-600"
-                    }`}
+                    className={`w-4 h-4 rounded-full ${
+                      idx === currentProject ? `bg-[${colors.primary}]` : "bg-gray-400"
+                    } transition`}
                     onClick={() => setCurrentProject(idx)}
                     style={{
-                      backgroundColor:
-                        idx === currentProject ? colors.primary : undefined,
+                      backgroundColor: idx === currentProject ? colors.primary : undefined,
                     }}
                   />
                 ))}
@@ -801,11 +740,7 @@ export default function App() {
                 Contact Me
               </motion.h2>
 
-              <form
-                ref={formRef}
-                onSubmit={sendEmail}
-                className="space-y-6 text-left"
-              >
+              <form ref={formRef} onSubmit={sendEmail} className="space-y-6 text-left">
                 <input
                   type="text"
                   name="user_name"
@@ -832,15 +767,9 @@ export default function App() {
                 />
                 <button
                   type="submit"
-                  onClick={createRipple}
-                  className="relative overflow-hidden w-full py-3 text-white rounded-lg transition"
+                  className="w-full py-3 text-white rounded-lg transition relative overflow-hidden"
                   style={{ backgroundColor: colors.primary }}
-                  onMouseOver={(e) =>
-                    (e.currentTarget.style.backgroundColor = colors.primaryDark)
-                  }
-                  onMouseOut={(e) =>
-                    (e.currentTarget.style.backgroundColor = colors.primary)
-                  }
+                  onMouseDown={createRipple}
                 >
                   Send Message
                 </button>
@@ -860,7 +789,7 @@ export default function App() {
           </FadeInSection>
         </main>
 
-        {/* Footer */}
+        {/* Tailbar Footer */}
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
@@ -893,16 +822,16 @@ export default function App() {
 
         {/* Floating Resume Download Button */}
         <a
-          href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing" // update with your resume file location
+          href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
+          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none relative overflow-hidden"
           title="Download Resume"
           download
           style={{ backgroundColor: colors.primary }}
+          onMouseDown={createRipple}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
-          onClick={createRipple}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -921,6 +850,25 @@ export default function App() {
           <span>Resume</span>
         </a>
       </div>
+
+      {/* Ripple effect styles */}
+      <style>{`
+        .ripple {
+          position: absolute;
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 600ms linear;
+          background-color: rgba(255, 255, 255, 0.7);
+          pointer-events: none;
+          z-index: 9999;
+        }
+        @keyframes ripple {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </>
   );
 }
