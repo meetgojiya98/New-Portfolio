@@ -4,14 +4,16 @@ import { OrbitControls } from "@react-three/drei";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import emailjs from "emailjs-com";
 
+// Navigation Items (keys for translation)
 const navItems = [
   { key: "home", id: "hero" },
-  { key: "about", id: "about" },
+  { key: "aboutMe", id: "about" },
   { key: "skills", id: "skills" },
   { key: "projects", id: "projects" },
   { key: "contact", id: "contact" },
 ];
 
+// Theme colors as before
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
@@ -39,17 +41,17 @@ const themeColors = {
   },
 };
 
-// Translations for English and French
+// TRANSLATIONS for supported languages
 const translations = {
   en: {
     home: "Home",
-    about: "About Me",
+    aboutMe: "About Me",
     skills: "Skills",
     projects: "Projects",
     contact: "Contact",
+    fullStack: "Full-stack Developer & AI Enthusiast — Building beautiful, scalable web experiences.",
     seeMyWork: "See My Work",
-    fullStack:
-      "Full-stack Developer & AI Enthusiast — Building beautiful, scalable web experiences.",
+    about: "About Me",
     aboutDescription1:
       "Meet Gojiya is a Solution Analyst on the Product Engineering and Development team, within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the ability to link business with technology to extract insights from complex data and build data-driven solutions.",
     aboutDescription2:
@@ -59,37 +61,219 @@ const translations = {
     sendMessage: "Send Message",
     messageSent: "Message sent successfully!",
     messageFailed: "Oops! Something went wrong. Please try again.",
+    backToTop: "Back to top",
     downloadResume: "Download Resume",
-    backToTop: "Back to Top",
   },
   fr: {
     home: "Accueil",
-    about: "À propos de moi",
+    aboutMe: "À propos",
     skills: "Compétences",
     projects: "Projets",
     contact: "Contact",
+    fullStack: "Développeur Full-stack & passionné d'IA — Création d'expériences web belles et évolutives.",
     seeMyWork: "Voir mon travail",
-    fullStack:
-      "Développeur Full-stack & passionné d'IA — Création d'expériences web belles et évolutives.",
+    about: "À propos de moi",
     aboutDescription1:
-      "Meet Gojiya est analyste de solutions dans l'équipe d'ingénierie, IA et données chez Deloitte Canada. Il est capable de relier les affaires à la technologie pour extraire des insights de données complexes et construire des solutions basées sur les données.",
+      "Meet Gojiya est un analyste de solutions dans l'équipe de développement et d'ingénierie produit chez Deloitte Canada. Meet est capable de relier le business à la technologie pour extraire des insights de données complexes et construire des solutions basées sur les données.",
     aboutDescription2:
-      "Meet est diplômé de l'Université du Nouveau-Brunswick où il a obtenu une maîtrise en informatique. Il détient également un diplôme en génie informatique de l'Université technologique du Gujarat. Meet est motivé par l'innovation technologique, l'analyse avancée, l'adaptabilité, la collaboration et la créativité, développant ainsi sa carrière ainsi que celles des personnes qui l'entourent. Il possède un fort esprit entrepreneurial qui alimente sa passion pour créer des solutions impactantes et générer un changement positif dans l'industrie et dans le monde.",
+      "Meet est diplômé de l'Université du Nouveau-Brunswick, où il a obtenu un Master en informatique. Il détient également une licence en ingénierie informatique de l'Université technologique du Gujarat. Meet est motivé par l'innovation technologique, l'analyse avancée, l'adaptabilité, la collaboration et la créativité, ce qui fait avancer sa carrière ainsi que celle des autres.",
     aboutDescription3:
-      "Apprenant avide et auditeur actif, Meet s'épanouit en absorbant les connaissances de nombreuses personnes, reconnaissant que chaque interaction est une opportunité d'acquérir de nouvelles perspectives. Sa personnalité extrêmement curieuse le pousse à explorer de nouvelles idées, à remettre en question les paradigmes existants et à chercher continuellement des opportunités d'apprentissage et de croissance.",
+      "Apprenant avide et auditeur actif, Meet s'efforce d'absorber les connaissances de nombreuses personnes, reconnaissant que chaque interaction est une opportunité d'acquérir de nouvelles perspectives. Sa curiosité extrême le pousse à explorer de nouvelles idées et à chercher continuellement des opportunités d'apprentissage.",
     sendMessage: "Envoyer le message",
     messageSent: "Message envoyé avec succès !",
     messageFailed: "Oups ! Quelque chose a mal tourné. Veuillez réessayer.",
-    downloadResume: "Télécharger le CV",
     backToTop: "Retour en haut",
+    downloadResume: "Télécharger le CV",
+  },
+  hi: {
+    home: "होम",
+    aboutMe: "मेरे बारे में",
+    skills: "कौशल",
+    projects: "परियोजनाएँ",
+    contact: "संपर्क करें",
+    fullStack: "फुल-स्टैक डेवलपर और एआई उत्साही — सुंदर, स्केलेबल वेब अनुभव बना रहे हैं।",
+    seeMyWork: "मेरा काम देखें",
+    about: "मेरे बारे में",
+    aboutDescription1:
+      "मीत गोजिया डेलॉइट कनाडा में इंजीनियरिंग, एआई और डेटा टीम के उत्पाद इंजीनियरिंग और विकास टीम में एक समाधान विश्लेषक हैं। मीत व्यवसाय और तकनीक को जोड़कर जटिल डेटा से अंतर्दृष्टि निकालने और डेटा-आधारित समाधान बनाने में सक्षम हैं।",
+    aboutDescription2:
+      "मीत ने यूनिवर्सिटी ऑफ न्यू ब्रंसविक से मास्टर ऑफ कंप्यूटर साइंस की डिग्री प्राप्त की है। उन्होंने गुजरात टेक्नोलॉजिकल यूनिवर्सिटी से कंप्यूटर इंजीनियरिंग में स्नातक की डिग्री भी हासिल की है। मीत तकनीकी नवाचार, उन्नत विश्लेषिकी, अनुकूलनशीलता, सहयोग और रचनात्मकता द्वारा प्रेरित हैं, जो उनकी और उनके आसपास के लोगों के करियर को आगे बढ़ाता है।",
+    aboutDescription3:
+      "एक उत्साही शिक्षार्थी और सक्रिय श्रोता के रूप में, मीत जितने हो सके लोगों से ज्ञान प्राप्त करने में लगनशील हैं, यह मानते हुए कि हर बातचीत नई अंतर्दृष्टि और दृष्टिकोण प्राप्त करने का अवसर है। उनकी अत्यधिक जिज्ञासु प्रकृति उन्हें नए विचारों का अन्वेषण करने, मौजूदा मान्यताओं को चुनौती देने और सीखने और विकास के अवसरों की खोज जारी रखने के लिए प्रेरित करती है।",
+    sendMessage: "संदेश भेजें",
+    messageSent: "संदेश सफलतापूर्वक भेजा गया!",
+    messageFailed: "अरे! कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+    backToTop: "ऊपर जाएं",
+    downloadResume: "बायोडाटा डाउनलोड करें",
+  },
+  gu: {
+    home: "હોમ",
+    aboutMe: "મારા વિશે",
+    skills: "કૌશલ્ય",
+    projects: "પ્રોજેક્ટ્સ",
+    contact: "સંપર્ક કરો",
+    fullStack: "ફુલ-સ્ટેક ડેવલપર અને AI ઉત્સાહી — સુંદર, સ્કેલેબલ વેબ અનુભવ બનાવી રહ્યા છે.",
+    seeMyWork: "મારું કામ જુઓ",
+    about: "મારા વિશે",
+    aboutDescription1:
+      "મીટ ગોજિયા ડિલોઇટ કેનેડામાં એન્જિનિયરિંગ, AI અને ડેટા ટીમમાં પ્રોડક્ટ એન્જિનિયરિંગ અને ડેવલપમેન્ટ ટીમમાં સોલ્યુશન એનાલિસ્ટ છે. મીટ જટિલ ડેટામાંથી બિઝનેસને ટેક્નોલોજી સાથે જોડીને અંદરજાણી કાઢી શકે છે અને ડેટા આધારિત સોલ્યુશન્સ બનાવી શકે છે.",
+    aboutDescription2:
+      "મીટ યુનિવર્સિટી ઓફ ન્યુ બ્રન્સવિકથી માસ્ટર ઓફ કમ્પ્યુટર સાયન્સ ડિગ્રી ધરાવે છે. તેણે ગુજરાત ટેકનોલોજિકલ યુનિવર્સિટીથી કમ્પ્યુટર એન્જિનિયરિંગમાં બેચલર ડિગ્રી પણ મેળવી છે. મીટ ટેક્નોલોજી ઈનોવેશન, એડવાન્સ એનાલિટિક્સ, એડેપ્ટેબિલિટી, સહકાર અને ક્રિએટિવિટી દ્વારા પ્રેરિત છે, જે તેમના અને તેમના આસપાસના લોકોના કરિયરનું વિકાસ કરે છે.",
+    aboutDescription3:
+      "એક ઉત્સાહી શીખનાર અને સક્રિય શ્રોતાર તરીકે, મીટ જેટલા લોકો પાસેથી જ્ઞાન શીખવા માટે ઉત્સુક છે, માનતાં કે દરેક સંવાદ નવું દ્રષ્ટિકોણ અને જાણકારી મેળવવાનો અવસર છે. તેમનું અત્યંત કૌતુક સ્વભાવ તેમને નવા વિચારોનું અન્વેષણ કરવા અને સતત શીખવાની તક શોધવા માટે પ્રેરિત કરે છે.",
+    sendMessage: "સંદેશ મોકલો",
+    messageSent: "સંદેશ સફળતાપૂર્વક મોકલાયો!",
+    messageFailed: "અફસોસ! કંઈક ખોટું થયું. કૃપા કરીને ફરીથી પ્રયાસ કરો.",
+    backToTop: "ઉપર જાઓ",
+    downloadResume: "રિઝ્યૂમ ડાઉનલોડ કરો",
+  },
+  kn: {
+    home: "ಹೋಮ್",
+    aboutMe: "ನನ್ನ ಬಗ್ಗೆ",
+    skills: "ದಕ್ಷತೆಗಳು",
+    projects: "ಪ್ರಾಜೆಕ್ಟ್ಸ್",
+    contact: "ಸಂಪರ್ಕಿಸಿ",
+    fullStack: "ಫುಲ್-ಸ್ಟಾಕ್ ಡೆವಲಪರ್ ಮತ್ತು AI ಆಸಕ್ತರು — ಸುಂದರ, ಪಾರಮರ್ಶನೀಯ ವೆಬ್ ಅನುಭವಗಳನ್ನು ನಿರ್ಮಿಸುತ್ತಿದ್ದಾರೆ.",
+    seeMyWork: "ನನ್ನ ಕೆಲಸ ನೋಡಿ",
+    about: "ನನ್ನ ಬಗ್ಗೆ",
+    aboutDescription1:
+      "ಮೀಟ್ ಗೋಜಿಯಾ ಡಿಲಾಯ್ಟ್ ಕಾನಡಾದ ಎಂಜಿನಿಯರಿಂಗ್, AI ಮತ್ತು ಡೇಟಾ ತಂಡದ ಉತ್ಪನ್ನ ಎಂಜಿನಿಯರಿಂಗ್ ಮತ್ತು ಅಭಿವೃದ್ಧಿ ತಂಡದ ಪರಿಹಾರ ವಿಶ್ಲೇಷಕನಾಗಿದ್ದಾರೆ. ಮೀಟ್ ವಾಣಿಜ್ಯ ಮತ್ತು ತಂತ್ರಜ್ಞಾನದ ಸಂಪರ್ಕದಿಂದ ಸಂಕೀರ್ಣ ಡೇಟಾದಿಂದ ಒಳನೋಟಗಳನ್ನು ಹೊರತೆಗೆದು ಡೇಟಾ ಆಧಾರಿತ ಪರಿಹಾರಗಳನ್ನು ನಿರ್ಮಿಸಲು ಸಾಮರ್ಥ್ಯವಿದೆ.",
+    aboutDescription2:
+      "ಮೀಟ್ ನ್ಯೂ ಬ್ರನ್ಸ್ವಿಕ್ ವಿಶ್ವವಿದ್ಯಾಲಯದಿಂದ ಕಂಪ್ಯೂಟರ್ ಸೈನ್ಸ್‌ನಲ್ಲಿ ಮಾಸ್ಟರ್ ಪದವಿ ಪಡೆದಿದ್ದಾರೆ. ಅವರು ಗುಜರಾತ್ ಟೆಕ್ನಾಲಾಜಿಕಲ್ ವಿಶ್ವವಿದ್ಯಾಲಯದಿಂದ ಕಂಪ್ಯೂಟರ್ ಎಂಜಿನಿಯರಿಂಗ್‌ನಲ್ಲಿ ಬ್ಯಾಚುಲರ್ ಪದವಿ ಹೊಂದಿದ್ದಾರೆ. ಮೀಟ್ ತಂತ್ರಜ್ಞಾನ ನವೋದ್ಯಮ, ಪ್ರಗತಿಶೀಲ ವಿಶ್ಲೇಷಣೆ, ಹೊಂದಾಣಿಕೆ, ಸಹಕಾರ ಮತ್ತು ಸೃಜನಾತ್ಮಕತೆಯಿಂದ ಪ್ರೇರಿತನಾಗಿದ್ದು, ಅವರ ಮತ್ತು ಅವರ ಸುತ್ತಲೂ ಇರುವವರ ವೃತ್ತಿಜೀವನವನ್ನು ಮುಂದುವರಿಸುತ್ತಿದ್ದಾರೆ.",
+    aboutDescription3:
+      "ಆತ್ಮಸಾತ್ಕಾರವಾದ ಕಲಿಕಾರರು ಮತ್ತು ಸಕ್ರಿಯ ಶ್ರೋತೃಗಳಾಗಿ, ಮೀಟ್ ಸಾಧ್ಯವಾದಷ್ಟು ಜನರಿಂದ ಜ್ಞಾನವನ್ನು ಆಜಮಾಯಿಸಲು ಉತ್ಸುಕನಾಗಿದ್ದಾರೆ, ಪ್ರತಿ ಸಂಭಾಷಣೆ ಹೊಸ ದೃಷ್ಟಿಕೋಣ ಮತ್ತು ತಿಳಿವಳಿಕೆಯ ಅವಕಾಶವಾಗಿರುತ್ತದೆ ಎಂದು ಗುರುತಿಸಿಕೊಂಡಿದ್ದಾರೆ. ಅವರ ಅತ್ಯಂತ ಕುತೂಹಲದ ವ್ಯಕ್ತಿತ್ವ ಹೊಸ ಕಲ್ಪನೆಗಳನ್ನು ಅನ್ವೇಷಿಸಲು, ಸಧ್ಯದ ಪರಿಕಲ್ಪನೆಗಳಿಗೆ ಪ್ರಶ್ನೆಗಳನ್ನು ಎತ್ತಲು ಮತ್ತು ಕಲಿಕೆ ಮತ್ತು ಬೆಳವಣಿಗೆಯ ಅವಕಾಶಗಳನ್ನು ನಿರಂತರವಾಗಿ ಹುಡುಕಲು ಪ್ರೇರಣೆ ನೀಡುತ್ತದೆ.",
+    sendMessage: "ಸಂದೇಶ ಕಳುಹಿಸಿ",
+    messageSent: "ಸಂದೇಶ ಯಶಸ್ವಿಯಾಗಿ ಕಳುಹಿಸಲಾಗಿದೆ!",
+    messageFailed: "ಓಹ್! ಕೆಲವು ತಪ್ಪಾಗಿದೆ. ದಯವಿಟ್ಟು ಮರುಪ್ರಯತ್ನಿಸಿ.",
+    backToTop: "ಮೇಲಿಗೆ ಹೋಗಿ",
+    downloadResume: "ರೆಸ್ಯೂಮ್ ಡೌನ್ಲೋಡ್ ಮಾಡಿ",
+  },
+  te: {
+    home: "హోమ్",
+    aboutMe: "నా గురించి",
+    skills: "నైపుణ్యాలు",
+    projects: "ప్రాజెక్టులు",
+    contact: "సంప్రదించండి",
+    fullStack: "ఫుల్-స్టాక్ డెవలపర్ & AI అభిమాని — అందమైన, స్కేలబుల్ వెబ్ అనుభవాలను నిర్మిస్తున్నాడు.",
+    seeMyWork: "నా పని చూడండి",
+    about: "నా గురించి",
+    aboutDescription1:
+      "మీట్ గోజియా డెలాయిట్ కెనడాలోని ఇంజనీరింగ్, AI, మరియు డేటా టీమ్‌లో ప్రొడక్ట్ ఇంజనీరింగ్ మరియు అభివృద్ధి టీమ్‌లో సొల్యూషన్ అనలిస్ట్‌గా ఉన్నారు. మీట్ వ్యాపారాన్ని సాంకేతికతతో కలిపి సంక్లిష్టమైన డేటా నుండి అవగాహనలను పొందగలడు మరియు డేటా ఆధారిత పరిష్కారాలను రూపొందించగలడు.",
+    aboutDescription2:
+      "మీట్ యూనివర్సిటీ ఆఫ్ న్యూ బ్రన్స్‌విక్ నుండి మాస్టర్ ఆఫ్ కంప్యూటర్ సైన్స్ డిగ్రీ పొందారు. గుజరాత్ టెక్నాలాజికల్ యూనివర్సిటీ నుండి కంప్యూటర్ ఇంజనీరింగ్‌లో బ్యాచిలర్ డిగ్రీను కూడా కలిగి ఉన్నారు. మీట్ సాంకేతిక నూతనత, ఆధునిక విశ్లేషణలు, అనుకూలత, సహకారం మరియు సృజనాత్మకత ద్వారా ప్రేరేపితుడుగా, తన మరియు తన చుట్టుపక్కల వారిలో వృత్తిపరమైన అభివృద్ధిని కొనసాగిస్తున్నారు.",
+    aboutDescription3:
+      "ఒక ఉత్సాహవంతుడైన అభ్యాసకుడిగా మరియు చురుకైన శ్రోతగా, మీట్ ఎంతమేరకు వీరితో ఉన్నవారినుండి జ్ఞానాన్ని గ్రహిస్తారు, ప్రతి సంభాషణ కొత్త అవగాహనలు మరియు దృక్కోణాలను పొందే అవకాశం అని గుర్తిస్తున్నారు. అతని అత్యంత జిజ్ఞాసువు స్వభావం కొత్త ఆలోచనలు అన్వేషించడానికి, ఉన్న పరిధులను ప్రశ్నించడానికి మరియు ఎల్లప్పుడూ అభ్యాసం మరియు ఎదుగుదల అవకాశాలను అన్వేషించడానికి ప్రేరేపిస్తుంది.",
+    sendMessage: "సందేశం పంపండి",
+    messageSent: "సందేశం విజయవంతంగా పంపబడింది!",
+    messageFailed: "ఓహ్! ఏదో తప్పిపోయింది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    backToTop: "పైకి వెళ్లండి",
+    downloadResume: "రెస్యూమ్ డౌన్లోడ్ చేయండి",
+  },
+  pa: {
+    home: "ਹੋਮ",
+    aboutMe: "ਮੇਰੇ ਬਾਰੇ",
+    skills: "ਕੌਸ਼ਲ",
+    projects: "ਪ੍ਰੋਜੈਕਟ",
+    contact: "ਸੰਪਰਕ ਕਰੋ",
+    fullStack: "ਫੁੱਲ-ਸਟੈਕ ਡਿਵੈਲਪਰ ਅਤੇ ਏਆਈ ਉਤਸ਼ਾਹੀ — ਸੁੰਦਰ, ਸਕੇਲਏਬਲ ਵੈੱਬ ਅਨੁਭਵ ਬਣਾ ਰਹੇ ਹਨ।",
+    seeMyWork: "ਮੇਰਾ ਕੰਮ ਵੇਖੋ",
+    about: "ਮੇਰੇ ਬਾਰੇ",
+    aboutDescription1:
+      "ਮੀਟ ਗੋਜੀਆ ਡਿਲੌਇਟ ਕੈਨੇਡਾ ਵਿੱਚ ਇੰਜੀਨੀਅਰਿੰਗ, ਏਆਈ ਅਤੇ ਡੇਟਾ ਟੀਮ ਵਿੱਚ ਉਤਪਾਦ ਇੰਜੀਨੀਅਰਿੰਗ ਅਤੇ ਵਿਕਾਸ ਟੀਮ ਵਿੱਚ ਇੱਕ ਸਾਂਝਾ ਵਿਸ਼ਲੇਸ਼ਕ ਹਨ। ਮੀਟ ਕਾਰੋਬਾਰ ਨੂੰ ਤਕਨਾਲੋਜੀ ਨਾਲ ਜੋੜ ਕੇ ਜਟਿਲ ਡੇਟਾ ਵਿੱਚੋਂ ਅੰਦਰੂਨੀ ਜਾਣਕਾਰੀ ਪ੍ਰਾਪਤ ਕਰਨ ਅਤੇ ਡੇਟਾ-ਆਧਾਰਿਤ ਸਮਾਧਾਨ ਬਣਾਉਣ ਵਿੱਚ ਸਮਰੱਥ ਹਨ।",
+    aboutDescription2:
+      "ਮੀਟ ਯੂਨੀਵਰਸਿਟੀ ਆਫ ਨਿਊ ਬ੍ਰੰਸਵਿਕ ਤੋਂ ਕੰਪਿਊਟਰ ਸਾਇੰਸ ਵਿੱਚ ਮਾਸਟਰ ਦੀ ਡਿਗਰੀ ਪ੍ਰਾਪਤ ਕੀਤੀ ਹੈ। ਉਹ ਗੁਜਰਾਤ ਟੈਕਨੋਲੋਜੀਕਲ ਯੂਨੀਵਰਸਿਟੀ ਤੋਂ ਕੰਪਿਊਟਰ ਇੰਜੀਨੀਅਰਿੰਗ ਵਿੱਚ ਬੈਚਲਰ ਡਿਗਰੀ ਵੀ ਰੱਖਦੇ ਹਨ। ਮੀਟ ਤਕਨਾਲੋਜੀ ਨਵੀਂਕਰਨ, ਉन्नਤ ਵਿਸ਼ਲੇਸ਼ਣ, ਅਨੁਕੂਲਤਾ, ਸਹਿਯੋਗ ਅਤੇ ਰਚਨਾਤਮਕਤਾ ਨਾਲ ਪ੍ਰੇਰਿਤ ਹਨ, ਜੋ ਉਹਨਾਂ ਅਤੇ ਉਹਨਾਂ ਦੇ ਆਸ-ਪਾਸ ਲੋਕਾਂ ਦੇ ਕਰੀਅਰ ਨੂੰ ਅੱਗੇ ਵਧਾਉਂਦੇ ਹਨ।",
+    aboutDescription3:
+      "ਇੱਕ ਉਤਸ਼ਾਹੀ ਸਿੱਖਣ ਵਾਲੇ ਅਤੇ ਸਰਗਰਮ ਸੁਣਨ ਵਾਲੇ ਵਜੋਂ, ਮੀਟ ਸੰਭਵ ਹੱਦ ਤਕ ਲੋਕਾਂ ਤੋਂ ਗਿਆਨ ਸਿੱਖਣ ਲਈ ਪ੍ਰੇਰਿਤ ਹਨ, ਸਮਝਦੇ ਹਨ ਕਿ ਹਰ ਇੰਟਰੈਕਸ਼ਨ ਨਵੀਆਂ ਅੰਦਰੂਨੀ ਜਾਣਕਾਰੀਆਂ ਅਤੇ ਦ੍ਰਿਸ਼ਟੀਕੋਣ ਪ੍ਰਾਪਤ ਕਰਨ ਦਾ ਮੌਕਾ ਹੈ। ਉਹਨਾਂ ਦੀ ਬਹੁਤ ਹੀ ਜਿਗਿਆਸੂ ਸ਼ਖਸੀਅਤ ਉਨ੍ਹਾਂ ਨੂੰ ਨਵੀਆਂ ਵਿਚਾਰਧਾਰਾਵਾਂ ਦੀ ਖੋਜ ਕਰਨ, ਮੌਜੂਦਾ ਧਾਰਣਾ ਨੂੰ ਚੁਣੌਤੀ ਦੇਣ ਅਤੇ ਸਿੱਖਣ ਅਤੇ ਵਿਕਾਸ ਦੇ ਮੌਕੇ ਲੱਭਣ ਲਈ ਪ੍ਰੇਰਿਤ ਕਰਦੀ ਹੈ।",
+    sendMessage: "ਸੁਨੇਹਾ ਭੇਜੋ",
+    messageSent: "ਸੁਨੇਹਾ ਸਫਲਤਾਪੂਰਵਕ ਭੇਜਿਆ ਗਿਆ!",
+    messageFailed: "ਉਫ! ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    backToTop: "ਉੱਪਰ ਜਾਓ",
+    downloadResume: "ਰੀਜ਼ਿਊਮ ਡਾਊਨਲੋਡ ਕਰੋ",
+  },
+  es: {
+    home: "Inicio",
+    aboutMe: "Sobre mí",
+    skills: "Habilidades",
+    projects: "Proyectos",
+    contact: "Contacto",
+    fullStack: "Desarrollador Full-stack y entusiasta de IA — Construyendo experiencias web hermosas y escalables.",
+    seeMyWork: "Ver mi trabajo",
+    about: "Sobre mí",
+    aboutDescription1:
+      "Meet Gojiya es un Analista de Soluciones en el equipo de Ingeniería y Desarrollo de Producto en Deloitte Canadá. Meet tiene la habilidad de vincular negocios con tecnología para extraer información de datos complejos y construir soluciones basadas en datos.",
+    aboutDescription2:
+      "Meet es graduado de la Universidad de New Brunswick, donde obtuvo una Maestría en Ciencias de la Computación. También posee una licenciatura en Ingeniería Informática de la Universidad Tecnológica de Gujarat. Meet se siente impulsado por la innovación tecnológica, análisis avanzado, adaptabilidad, colaboración y creatividad, impulsando su carrera y la de quienes lo rodean.",
+    aboutDescription3:
+      "Un ávido aprendiz y oyente activo, Meet se esfuerza por absorber conocimientos de tantas personas como sea posible, reconociendo que cada interacción es una oportunidad para obtener nuevas perspectivas y conocimientos. Su personalidad extremadamente curiosa lo impulsa a explorar nuevas ideas, cuestionar paradigmas existentes y buscar continuamente oportunidades para aprender y crecer.",
+    sendMessage: "Enviar mensaje",
+    messageSent: "¡Mensaje enviado con éxito!",
+    messageFailed: "¡Vaya! Algo salió mal. Por favor, inténtelo de nuevo.",
+    backToTop: "Volver arriba",
+    downloadResume: "Descargar CV",
+  },
+  zh: {
+    home: "首页",
+    aboutMe: "关于我",
+    skills: "技能",
+    projects: "项目",
+    contact: "联系",
+    fullStack: "全栈开发者和AI爱好者——打造美观且可扩展的网页体验。",
+    seeMyWork: "查看我的作品",
+    about: "关于我",
+    aboutDescription1:
+      "Meet Gojiya 是 Deloitte 加拿大工程、AI 和数据团队的产品工程与开发团队解决方案分析师。Meet 能够将业务与技术结合，从复杂数据中提取见解并构建数据驱动的解决方案。",
+    aboutDescription2:
+      "Meet 毕业于新不伦瑞克大学，获得计算机科学硕士学位。还拥有古吉拉特理工大学的计算机工程学士学位。Meet 以技术创新、高级分析、适应性、协作和创造力为动力，推动自己及周围人的职业发展。",
+    aboutDescription3:
+      "作为一个热衷学习和积极倾听的人，Meet 热衷于从尽可能多的人那里吸取知识，认识到每一次互动都是获得新见解和视角的机会。他极具好奇心的个性推动他探索新想法、质疑现有范式，并不断寻求学习和成长的机会。",
+    sendMessage: "发送信息",
+    messageSent: "信息发送成功！",
+    messageFailed: "哎呀！出了点问题。请再试一次。",
+    backToTop: "返回顶部",
+    downloadResume: "下载简历",
+  },
+  ar: {
+    home: "الرئيسية",
+    aboutMe: "عني",
+    skills: "المهارات",
+    projects: "المشاريع",
+    contact: "اتصل",
+    fullStack: "مطور شامل ومتحمس للذكاء الاصطناعي — بناء تجارب ويب جميلة وقابلة للتوسع.",
+    seeMyWork: "شاهد أعمالي",
+    about: "عني",
+    aboutDescription1:
+      "ميت غوجيا هو محلل حلول في فريق تطوير المنتجات والهندسة في ديلويت كندا. يمتلك ميت القدرة على ربط الأعمال بالتكنولوجيا لاستخلاص الرؤى من البيانات المعقدة وبناء حلول قائمة على البيانات.",
+    aboutDescription2:
+      "تخرج ميت من جامعة نيو برونزويك حيث حصل على درجة الماجستير في علوم الكمبيوتر. كما يحمل درجة البكالوريوس في هندسة الكمبيوتر من جامعة جوجارات التقنية. يحفز ميت الابتكار التكنولوجي والتحليلات المتقدمة والقدرة على التكيف والتعاون والإبداع، مما يدفع مسيرته المهنية ومسيرة من حوله.",
+    aboutDescription3:
+      "بصفته متعلمًا نهمًا ومستمعًا نشطًا، يزدهر ميت في امتصاص المعرفة من أكبر عدد ممكن من الناس، معترفًا بأن كل تفاعل هو فرصة للحصول على رؤى ومنظورات جديدة. تدفعه شخصيته الفضولية للغاية إلى استكشاف أفكار جديدة والتشكيك في النماذج الحالية والبحث المستمر عن فرص التعلم والنمو.",
+    sendMessage: "أرسل رسالة",
+    messageSent: "تم إرسال الرسالة بنجاح!",
+    messageFailed: "عذرًا! حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    backToTop: "العودة إلى الأعلى",
+    downloadResume: "تحميل السيرة الذاتية",
   },
 };
 
-// 3D Cursor
+// Language full names for dropdown
+const languageOptions = [
+  { code: "en", name: "English" },
+  { code: "fr", name: "Français" },
+  { code: "hi", name: "हिन्दी" },
+  { code: "gu", name: "ગુજરાતી" },
+  { code: "kn", name: "ಕನ್ನಡ" },
+  { code: "te", name: "తెలుగు" },
+  { code: "pa", name: "ਪੰਜਾਬੀ" },
+  { code: "es", name: "Español" },
+  { code: "zh", name: "中文" },
+  { code: "ar", name: "العربية" },
+];
+
+// 3D Cursor component (same as before)
 function Cursor3D({ color }) {
-  const meshRef = useRef();
+  const meshRef = React.useRef();
   const { viewport, mouse } = useThree();
-  const pos = useRef([0, 0]);
+  const pos = React.useRef([0, 0]);
 
   useFrame(() => {
     pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.15;
@@ -117,14 +301,14 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive Particles
+// Interactive Particles (same as before)
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
   const PARTICLE_COUNT = 100;
   const PARTICLE_DISTANCE = 1.7;
-  const positions = useRef([]);
-  const velocities = useRef([]);
+  const positions = React.useRef([]);
+  const velocities = React.useRef([]);
 
   if (positions.current.length === 0) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -141,8 +325,8 @@ function InteractiveParticles({ color }) {
     }
   }
 
-  const pointsRef = useRef();
-  const linesRef = useRef();
+  const pointsRef = React.useRef();
+  const linesRef = React.useRef();
 
   useFrame(() => {
     const ptsPositions = pointsRef.current.geometry.attributes.position.array;
@@ -156,10 +340,12 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
+      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
+      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -171,6 +357,7 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
+      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -181,6 +368,7 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
+    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -239,10 +427,9 @@ function InteractiveParticles({ color }) {
   );
 }
 
-function Floating3DCanvas({ theme, isMobile }) {
+function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
 
-  // For mobile: reduce particle count or disable autoRotate
   return (
     <Canvas
       style={{
@@ -265,12 +452,7 @@ function Floating3DCanvas({ theme, isMobile }) {
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls
-        autoRotate={!isMobile}
-        autoRotateSpeed={0.1}
-        enableZoom={false}
-        enablePan={false}
-      />
+      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
@@ -339,35 +521,12 @@ function SectionReveal({ id, colors, title, children }) {
   );
 }
 
-// Loading skeleton for projects
-function ProjectSkeleton({ colors }) {
-  return (
-    <div
-      className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-default select-none animate-pulse"
-      style={{ backgroundColor: colors.primaryLight + "30" }}
-    >
-      <div className="h-8 mb-4 rounded bg-gray-300 dark:bg-gray-700"></div>
-      <div className="h-4 mb-6 rounded bg-gray-300 dark:bg-gray-700"></div>
-      <div className="flex justify-center gap-6">
-        <div className="w-20 h-8 rounded bg-gray-300 dark:bg-gray-700"></div>
-        <div className="w-20 h-8 rounded bg-gray-300 dark:bg-gray-700"></div>
-      </div>
-    </div>
-  );
-};
-
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
-  const [lang, setLang] = useState(() => {
-    const saved = localStorage.getItem("lang");
-    return saved === "fr" ? "fr" : "en";
-  });
-
-  const t = (key) => translations[lang][key] || key;
 
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -379,16 +538,23 @@ export default function App() {
     return saved === null ? true : saved === "true";
   });
 
+  const [lang, setLang] = useState(() => {
+    const saved = localStorage.getItem("lang");
+    return saved && translations[saved] ? saved : "en";
+  });
+
   const [scrollProgress, setScrollProgress] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   const formRef = useRef(null);
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Hamburger menu state for mobile
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Translation helper
+  const t = (key) => translations[lang]?.[key] || key;
 
+  // Save lang on change
   useEffect(() => {
     localStorage.setItem("lang", lang);
   }, [lang]);
@@ -405,19 +571,13 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    setIsMobile(window.innerWidth <= 768);
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
     const sections = navItems.map(({ id }) => document.getElementById(id));
     const onScroll = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.body.scrollHeight - window.innerHeight;
       setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
       setScrolled(scrollTop > 30);
+      setShowBackToTop(scrollTop > 300);
 
       let current = "hero";
       sections.forEach((section) => {
@@ -438,7 +598,10 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
-    setMenuOpen(false); // close menu on nav click for mobile
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const sendEmail = (e) => {
@@ -453,6 +616,7 @@ export default function App() {
       .catch(() => setContactStatus("FAILED"));
   };
 
+  // Sample projects and skills as before
   const projects = [
     {
       title: "Stock Market Copilot",
@@ -496,37 +660,19 @@ export default function App() {
   ];
 
   const [currentProject, setCurrentProject] = useState(0);
-  const [loadingProject, setLoadingProject] = useState(false);
   const projectTimeout = useRef();
 
   useEffect(() => {
-    setLoadingProject(true);
-    const loadTimeout = setTimeout(() => setLoadingProject(false), 700);
     projectTimeout.current = setTimeout(() => {
       setCurrentProject((prev) => (prev + 1) % projects.length);
     }, 6000);
-    return () => {
-      clearTimeout(loadTimeout);
-      clearTimeout(projectTimeout.current);
-    };
+    return () => clearTimeout(projectTimeout.current);
   }, [currentProject]);
 
   const cycleTheme = () => {
     const currentIndex = validThemes.indexOf(theme);
     setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
   };
-
-  const toggleLang = () => setLang(lang === "en" ? "fr" : "en");
-
-  // Back to Top button visibility
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   const colors = themeColors[theme] || themeColors.saffron;
 
@@ -537,10 +683,7 @@ export default function App() {
           --color-primary: ${colors.primary};
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
-          --color-primary-light-transparent: ${colors.primaryLight}33;
-        }
-        html, body, #root {
-          transition: background-color 0.7s ease, color 0.7s ease;
+          transition: background-color 0.5s ease, color 0.5s ease;
         }
         .glass-card {
           background: rgba(255 255 255 / 0.15);
@@ -550,113 +693,60 @@ export default function App() {
         .glass-card:hover {
           background: rgba(255 255 255 / 0.3);
           box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px) scale(1.02);
+          transform: translateY(-5px) scale(1.03);
           cursor: pointer;
-          perspective: 800px;
-          transform-style: preserve-3d;
-          will-change: transform;
         }
-        .glass-card:focus-visible {
-          outline: 2px solid var(--color-primary);
-          outline-offset: 2px;
-        }
-        nav ul li:hover, nav ul li:focus-visible {
-          color: var(--color-primary);
-          text-decoration: underline;
-          transition: color 0.3s ease;
-        }
-        a.hover-animate:hover {
+        nav ul li:hover {
           color: var(--color-primary);
           text-decoration: underline;
           transform: scale(1.05);
-          transition: color 0.3s ease, transform 0.3s ease;
+          transition: all 0.3s ease;
         }
-        button, input, textarea {
-          font-family: inherit;
+        a:hover {
+          color: var(--color-primary);
+          text-decoration: underline;
+          transform: scale(1.05);
+          transition: all 0.3s ease;
         }
-        button:focus-visible, input:focus-visible, textarea:focus-visible {
-          outline: 2px solid var(--color-primary);
-          outline-offset: 2px;
+        button:hover {
+          transform: scale(1.05);
+          transition: transform 0.2s ease;
         }
-        /* Animated social icons */
-        .social-icon svg path {
-          transition: stroke 0.3s ease, fill 0.3s ease;
-        }
-        .social-icon:hover svg path {
-          stroke: var(--color-primary);
-          fill: var(--color-primary);
-          transition: stroke 0.3s ease, fill 0.3s ease;
-        }
-        /* Hamburger menu animations */
-        .hamburger {
-          cursor: pointer;
-          width: 28px;
-          height: 22px;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          z-index: 60;
-        }
-        .hamburger span {
-          display: block;
-          height: 3px;
-          background: var(--color-primary);
-          border-radius: 2px;
-          transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-        .hamburger.open span:nth-child(1) {
-          transform: translateY(9.5px) rotate(45deg);
-        }
-        .hamburger.open span:nth-child(2) {
-          opacity: 0;
-        }
-        .hamburger.open span:nth-child(3) {
-          transform: translateY(-9.5px) rotate(-45deg);
-        }
-        .mobile-menu {
-          position: fixed;
-          top: 60px;
-          right: 0;
-          width: 240px;
-          background: rgba(255 255 255 / 0.95);
-          backdrop-filter: saturate(180%) blur(12px);
-          box-shadow: -4px 4px 12px rgba(0,0,0,0.1);
-          padding: 2rem 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          transform: translateX(100%);
-          transition: transform 0.3s ease;
-          z-index: 50;
-        }
-        .mobile-menu.open {
-          transform: translateX(0);
-        }
+        /* Back to top button */
         .back-to-top {
           position: fixed;
-          bottom: 100px;
-          right: 24px;
+          bottom: 80px;
+          right: 20px;
+          z-index: 100;
           background-color: var(--color-primary);
-          color: white;
           border: none;
-          padding: 12px 16px;
+          padding: 0.75rem 1rem;
           border-radius: 9999px;
-          cursor: pointer;
-          box-shadow: 0 4px 12px var(--color-primary-light-transparent);
+          color: white;
           font-weight: 600;
-          opacity: 0.85;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+          opacity: 0.8;
           transition: opacity 0.3s ease, transform 0.3s ease;
-          z-index: 55;
         }
         .back-to-top:hover {
           opacity: 1;
           transform: scale(1.1);
         }
-        @media (max-width: 768px) {
-          nav ul {
-            display: none;
-          }
+        /* Language selector */
+        .lang-select {
+          background: transparent;
+          border: none;
+          color: inherit;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          transition: background-color 0.3s ease;
+        }
+        .lang-select:hover {
+          background-color: var(--color-primary-light);
+          color: var(--color-primary-dark);
         }
       `}</style>
 
@@ -664,7 +754,7 @@ export default function App() {
         className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
         style={{ paddingBottom: "90px" }}
       >
-        <Floating3DCanvas theme={theme} isMobile={isMobile} />
+        <Floating3DCanvas theme={theme} />
 
         <div
           className="fixed top-0 left-0 h-1 z-50 transition-all"
@@ -674,105 +764,103 @@ export default function App() {
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
-          } flex items-center justify-between px-6 py-3`}
+          }`}
         >
-          <div
-            onClick={() => {
-              scrollTo("hero");
-              setMenuOpen(false);
-            }}
-            className="text-2xl font-bold cursor-pointer select-none"
-          >
-            Meet Gojiya
-          </div>
-
-          {/* Desktop Nav */}
-          <ul className="hidden md:flex space-x-10 font-medium text-lg">
-            {navItems.map(({ key, id }) => (
-              <li
-                key={id}
-                onClick={() => scrollTo(id)}
-                tabIndex={0}
-                onKeyDown={(e) => (e.key === "Enter" ? scrollTo(id) : null)}
-                className={`cursor-pointer transition ${
-                  activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
-                }`}
-              >
-                {t(key)}
-              </li>
-            ))}
-          </ul>
-
-          {/* Mobile Hamburger & Lang/Theme */}
-          <div className="flex items-center space-x-4">
-            <button
-              aria-label="Toggle language"
-              title={`Switch to ${lang === "en" ? "French" : "English"}`}
-              onClick={toggleLang}
-              className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition font-semibold"
-            >
-              {lang.toUpperCase()}
-            </button>
-
-            <button
-              aria-label="Toggle Dark Mode"
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full text-white transition"
-              style={{ backgroundColor: colors.primary }}
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {darkMode ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  stroke="none"
-                >
-                  <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                </svg>
-              )}
-            </button>
-
+          <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
-              className={`hamburger ${menuOpen ? "open" : ""} md:hidden`}
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-label="Toggle menu"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && setMenuOpen((open) => !open)}
+              onClick={() => scrollTo("hero")}
+              className="text-2xl font-bold cursor-pointer select-none"
             >
-              <span />
-              <span />
-              <span />
+              Meet Gojiya
+            </div>
+
+            {/* Desktop nav */}
+            <ul className="hidden md:flex space-x-10 font-medium text-lg">
+              {navItems.map(({ key, id }) => (
+                <li
+                  key={id}
+                  onClick={() => scrollTo(id)}
+                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
+                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
+                  }`}
+                >
+                  {t(key)}
+                </li>
+              ))}
+            </ul>
+
+            {/* Language selector */}
+            <select
+              className="lang-select hidden md:block"
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              aria-label="Select Language"
+              title="Select Language"
+            >
+              {languageOptions.map(({ code, name }) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex items-center space-x-4">
+              <button
+                aria-label="Toggle Dark Mode"
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-full text-white transition"
+                style={{ backgroundColor: colors.primary }}
+              >
+                {darkMode ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke="none"
+                  >
+                    <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                aria-label="Cycle Color Theme"
+                onClick={() => {
+                  const currentIndex = validThemes.indexOf(theme);
+                  setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
+                }}
+                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
+                title="Cycle Color Theme"
+              >
+                🎨
+              </button>
             </div>
           </div>
         </nav>
 
-        {/* Mobile Menu */}
-        <div className={`mobile-menu ${menuOpen ? "open" : ""} md:hidden`}>
-          {navItems.map(({ key, id }) => (
-            <button
-              key={id}
-              onClick={() => scrollTo(id)}
-              className="text-left font-semibold text-lg p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            >
-              {t(key)}
-            </button>
-          ))}
-        </div>
+        {/* Back to Top button */}
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="back-to-top"
+            aria-label={t("backToTop")}
+            title={t("backToTop")}
+          >
+            ↑
+          </button>
+        )}
 
         <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
           {/* Hero */}
@@ -803,8 +891,6 @@ export default function App() {
               onClick={() => scrollTo("projects")}
               className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
               style={{ backgroundColor: colors.primary }}
-              aria-label={t("seeMyWork")}
-              title={t("seeMyWork")}
             >
               {t("seeMyWork")}
             </motion.button>
@@ -838,52 +924,42 @@ export default function App() {
           {/* Projects */}
           <SectionReveal id="projects" colors={colors} title={t("projects")}>
             <AnimatePresence mode="wait" initial={false}>
-              {loadingProject ? (
-                <ProjectSkeleton colors={colors} />
-              ) : (
-                <motion.div
-                  key={projects[currentProject].title}
-                  initial={{ opacity: 0, x: 100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ duration: 0.8 }}
-                  className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
-                  tabIndex={0}
-                  role="button"
-                  onKeyDown={(e) => e.key === "Enter" && window.open(projects[currentProject].live, "_blank")}
-                >
-                  <h3
-                    className="text-2xl font-semibold mb-4"
+              <motion.div
+                key={projects[currentProject].title}
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.8 }}
+                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
+              >
+                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
+                  {projects[currentProject].title}
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
+                  {projects[currentProject].description}
+                </p>
+
+                <div className="flex justify-center gap-6">
+                  <a
+                    href={projects[currentProject].live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline font-semibold"
                     style={{ color: colors.primary }}
                   >
-                    {projects[currentProject].title}
-                  </h3>
-                  <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                    {projects[currentProject].description}
-                  </p>
-
-                  <div className="flex justify-center gap-6">
-                    <a
-                      href={projects[currentProject].live}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover-animate font-semibold"
-                      style={{ color: colors.primary }}
-                    >
-                      Live Demo
-                    </a>
-                    <a
-                      href={projects[currentProject].link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover-animate font-semibold"
-                      style={{ color: colors.primary }}
-                    >
-                      GitHub
-                    </a>
-                  </div>
-                </motion.div>
-              )}
+                    Live Demo
+                  </a>
+                  <a
+                    href={projects[currentProject].link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline font-semibold"
+                    style={{ color: colors.primary }}
+                  >
+                    GitHub
+                  </a>
+                </div>
+              </motion.div>
             </AnimatePresence>
 
             <div className="flex justify-center gap-4 mt-4">
@@ -892,7 +968,7 @@ export default function App() {
                   key={idx}
                   aria-label={`Go to project ${idx + 1}`}
                   className={`w-4 h-4 rounded-full ${
-                    idx === currentProject ? "bg-[var(--color-primary)]" : "bg-gray-400"
+                    idx === currentProject ? `bg-[var(--color-primary)]` : "bg-gray-400"
                   } transition`}
                   onClick={() => setCurrentProject(idx)}
                   style={{ backgroundColor: idx === currentProject ? colors.primary : undefined }}
@@ -907,24 +983,22 @@ export default function App() {
               <input
                 type="text"
                 name="user_name"
-                placeholder={lang === "en" ? "Your Name" : "Votre nom"}
+                placeholder={t("home")}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
-                autoComplete="name"
               />
               <input
                 type="email"
                 name="user_email"
-                placeholder={lang === "en" ? "Your Email" : "Votre email"}
+                placeholder={t("contact")}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
-                autoComplete="email"
               />
               <textarea
                 name="message"
-                placeholder={lang === "en" ? "Your Message" : "Votre message"}
+                placeholder={t("sendMessage")}
                 rows={6}
                 required
                 className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition resize-none"
@@ -949,18 +1023,6 @@ export default function App() {
           </SectionReveal>
         </main>
 
-        {/* Back to Top button */}
-        {showBackToTop && (
-          <button
-            className="back-to-top"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            aria-label={t("backToTop")}
-            title={t("backToTop")}
-          >
-            ↑
-          </button>
-        )}
-
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
@@ -969,7 +1031,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
@@ -981,7 +1043,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
