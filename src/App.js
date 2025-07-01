@@ -110,12 +110,10 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
-      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -127,7 +125,6 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
-      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -138,7 +135,6 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -312,6 +308,8 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const formRef = useRef(null);
 
   useEffect(() => {
@@ -321,8 +319,13 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode);
     const html = document.documentElement;
-    if (darkMode) html.classList.add("dark");
-    else html.classList.remove("dark");
+    if (darkMode) {
+      html.classList.add("dark");
+      html.style.transition = "background-color 0.3s ease, color 0.3s ease";
+    } else {
+      html.classList.remove("dark");
+      html.style.transition = "background-color 0.3s ease, color 0.3s ease";
+    }
   }, [darkMode]);
 
   useEffect(() => {
@@ -352,18 +355,24 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
+    setMenuOpen(false);
   };
 
   const sendEmail = (e) => {
     e.preventDefault();
     setContactStatus(null);
+    setSendingEmail(true);
     emailjs
       .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, formRef.current, EMAILJS_USER_ID)
       .then(() => {
         setContactStatus("SUCCESS");
+        setSendingEmail(false);
         formRef.current.reset();
       })
-      .catch(() => setContactStatus("FAILED"));
+      .catch(() => {
+        setContactStatus("FAILED");
+        setSendingEmail(false);
+      });
   };
 
   const projects = [
@@ -444,6 +453,20 @@ export default function App() {
           transform: translateY(-5px);
           cursor: pointer;
         }
+        /* Focus outlines for accessibility */
+        button:focus,
+        a:focus,
+        input:focus,
+        textarea:focus,
+        li:focus {
+          outline: 3px solid var(--color-primary);
+          outline-offset: 2px;
+        }
+        /* Animate theme cycling button */
+        .theme-cycle-btn:active {
+          transform: scale(0.9);
+          transition: transform 0.15s ease;
+        }
       `}</style>
 
       <div
@@ -461,22 +484,36 @@ export default function App() {
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
           }`}
+          role="navigation"
+          aria-label="Primary Navigation"
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
               onClick={() => scrollTo("hero")}
               className="text-2xl font-bold cursor-pointer select-none"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") scrollTo("hero");
+              }}
+              role="link"
+              aria-label="Go to Home"
             >
               Meet Gojiya
             </div>
-            <ul className="hidden md:flex space-x-10 font-medium text-lg">
+            <ul className="hidden md:flex space-x-10 font-medium text-lg" role="menubar">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") scrollTo(id);
+                  }}
+                  tabIndex={0}
                   className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
                     activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
                   }`}
+                  aria-current={activeSection === id ? "page" : undefined}
+                  role="menuitem"
                 >
                   {label}
                 </li>
@@ -484,10 +521,11 @@ export default function App() {
             </ul>
             <div className="flex items-center space-x-4">
               <button
-                aria-label="Toggle Dark Mode"
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition"
+                className="p-2 rounded-full text-white transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 style={{ backgroundColor: colors.primary }}
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {darkMode ? (
                   <svg
@@ -497,6 +535,7 @@ export default function App() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={2}
+                    aria-hidden="true"
                   >
                     <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
                     <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
@@ -508,6 +547,7 @@ export default function App() {
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     stroke="none"
+                    aria-hidden="true"
                   >
                     <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
                   </svg>
@@ -516,7 +556,7 @@ export default function App() {
               <button
                 aria-label="Cycle Color Theme"
                 onClick={cycleTheme}
-                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
+                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition theme-cycle-btn focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 title="Cycle Color Theme"
               >
                 🎨
@@ -553,7 +593,7 @@ export default function App() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => scrollTo("projects")}
-              className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
+              className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10 focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
               style={{ backgroundColor: colors.primary }}
             >
               See My Work
@@ -627,8 +667,9 @@ export default function App() {
                     href={projects[currentProject].live}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
+                    className="hover:underline font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                     style={{ color: colors.primary }}
+                    title="View Live Demo"
                   >
                     Live Demo
                   </a>
@@ -636,8 +677,9 @@ export default function App() {
                     href={projects[currentProject].link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline font-semibold"
+                    className="hover:underline font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                     style={{ color: colors.primary }}
+                    title="View GitHub Repository"
                   >
                     GitHub
                   </a>
@@ -652,7 +694,7 @@ export default function App() {
                   aria-label={`Go to project ${idx + 1}`}
                   className={`w-4 h-4 rounded-full ${
                     idx === currentProject ? `bg-[var(--color-primary)]` : "bg-gray-400"
-                  } transition`}
+                  } transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2`}
                   onClick={() => setCurrentProject(idx)}
                   style={{ backgroundColor: idx === currentProject ? colors.primary : undefined }}
                 />
@@ -662,7 +704,12 @@ export default function App() {
 
           {/* Contact */}
           <SectionReveal id="contact" colors={colors} title="Contact Me">
-            <form ref={formRef} onSubmit={sendEmail} className="space-y-6 text-left">
+            <form
+              ref={formRef}
+              onSubmit={sendEmail}
+              className="space-y-6 text-left"
+              aria-label="Contact form"
+            >
               <input
                 type="text"
                 name="user_name"
@@ -689,19 +736,43 @@ export default function App() {
               />
               <button
                 type="submit"
-                className="w-full py-3 text-white rounded-lg transition"
+                className="w-full py-3 text-white rounded-lg transition flex justify-center items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
                 style={{ backgroundColor: colors.primary }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
+                disabled={sendingEmail}
+                title={sendingEmail ? "Sending message..." : "Send Message"}
               >
-                Send Message
+                {sendingEmail && (
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                )}
+                <span>{sendingEmail ? "Sending..." : "Send Message"}</span>
               </button>
             </form>
             {contactStatus === "SUCCESS" && (
-              <p className="mt-4 text-green-500 font-semibold">Message sent successfully!</p>
+              <p className="mt-4 text-green-500 font-semibold" role="alert">
+                Message sent successfully!
+              </p>
             )}
             {contactStatus === "FAILED" && (
-              <p className="mt-4 text-red-500 font-semibold">
+              <p className="mt-4 text-red-500 font-semibold" role="alert">
                 Oops! Something went wrong. Please try again.
               </p>
             )}
@@ -716,10 +787,11 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="hover:text-current transition"
+              className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ color: colors.primary }}
+              title="GitHub Profile"
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
               </svg>
             </a>
@@ -728,10 +800,11 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="hover:text-current transition"
+              className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ color: colors.primary }}
+              title="LinkedIn Profile"
             >
-              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
               </svg>
             </a>
@@ -742,7 +815,7 @@ export default function App() {
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
+          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
           title="Download Resume"
           download
           style={{ backgroundColor: colors.primary }}
@@ -756,6 +829,7 @@ export default function App() {
             stroke="currentColor"
             strokeWidth={2}
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
