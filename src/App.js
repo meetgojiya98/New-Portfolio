@@ -312,13 +312,8 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const formRef = useRef(null);
-
-  // Mobile menu state
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Back to Top button visible
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -339,8 +334,6 @@ export default function App() {
       setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
       setScrolled(scrollTop > 30);
 
-      setShowBackToTop(scrollTop > 400);
-
       let current = "hero";
       sections.forEach((section) => {
         if (section) {
@@ -360,12 +353,7 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setMobileMenuOpen(false);
+    setMenuOpen(false);
   };
 
   const sendEmail = (e) => {
@@ -446,141 +434,17 @@ export default function App() {
           --color-primary: ${colors.primary};
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
-          transition: color 0.5s ease, background-color 0.5s ease;
         }
         .glass-card {
           background: rgba(255 255 255 / 0.15);
           backdrop-filter: saturate(180%) blur(10px);
           transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
         }
-        .glass-card:hover,
-        .glass-card:focus-visible {
+        .glass-card:hover {
           background: rgba(255 255 255 / 0.3);
           box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px) scale(1.02);
+          transform: translateY(-5px);
           cursor: pointer;
-          outline: none;
-        }
-        a.hover-underline {
-          position: relative;
-          display: inline-block;
-          text-decoration: none;
-          transition: color 0.3s ease;
-        }
-        a.hover-underline::after {
-          content: "";
-          position: absolute;
-          width: 100%;
-          height: 2px;
-          background: var(--color-primary);
-          left: 0;
-          bottom: -4px;
-          transform: scaleX(0);
-          transform-origin: right;
-          transition: transform 0.3s ease;
-        }
-        a.hover-underline:hover::after,
-        a.hover-underline:focus-visible::after {
-          transform: scaleX(1);
-          transform-origin: left;
-        }
-        nav li:hover,
-        nav li:focus-visible {
-          color: var(--color-primary);
-          outline: none;
-        }
-        button:focus-visible {
-          outline: 2px solid var(--color-primary);
-          outline-offset: 2px;
-        }
-        .social-icon {
-          transition: stroke 0.3s ease, fill 0.3s ease;
-          stroke: var(--color-primary);
-          fill: var(--color-primary);
-        }
-        .social-icon:hover,
-        .social-icon:focus-visible {
-          stroke: var(--color-primary-light);
-          fill: var(--color-primary-light);
-        }
-        /* Mobile menu styles */
-        .mobile-menu {
-          position: fixed;
-          top: 0;
-          right: 0;
-          width: 250px;
-          max-width: 80vw;
-          height: 100vh;
-          background-color: var(--color-primary);
-          color: white;
-          box-shadow: -4px 0 12px rgba(0, 0, 0, 0.2);
-          padding: 2rem 1.5rem;
-          transform: translateX(100%);
-          transition: transform 0.3s ease;
-          z-index: 100;
-          display: flex;
-          flex-direction: column;
-        }
-        .mobile-menu.open {
-          transform: translateX(0);
-        }
-        .mobile-menu nav {
-          flex-grow: 1;
-        }
-        .mobile-menu nav ul {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-        .mobile-menu nav li {
-          margin-bottom: 1.5rem;
-          font-size: 1.25rem;
-          font-weight: 600;
-          cursor: pointer;
-          outline: none;
-          transition: color 0.3s ease;
-        }
-        .mobile-menu nav li:hover,
-        .mobile-menu nav li:focus-visible {
-          color: var(--color-primary-light);
-        }
-        .mobile-menu .close-button {
-          align-self: flex-end;
-          background: none;
-          border: none;
-          font-size: 2rem;
-          color: white;
-          cursor: pointer;
-          outline: none;
-          transition: color 0.3s ease;
-        }
-        .mobile-menu .close-button:hover,
-        .mobile-menu .close-button:focus-visible {
-          color: var(--color-primary-light);
-        }
-        /* Back to Top button */
-        .back-to-top {
-          position: fixed;
-          bottom: 70px;
-          right: 1.5rem;
-          background-color: var(--color-primary);
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 44px;
-          height: 44px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 50;
-          transition: background-color 0.3s ease;
-        }
-        .back-to-top:hover,
-        .back-to-top:focus-visible {
-          background-color: var(--color-primary-dark);
-          outline: none;
         }
       `}</style>
 
@@ -595,11 +459,10 @@ export default function App() {
           style={{ width: `${scrollProgress}%`, backgroundColor: colors.primary }}
         />
 
-        {/* Desktop Nav */}
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
-          } hidden md:block`}
+          }`}
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
@@ -608,22 +471,24 @@ export default function App() {
             >
               Meet Gojiya
             </div>
-            <ul className="flex space-x-10 font-medium text-lg">
+
+            {/* Desktop Nav */}
+            <ul className="hidden md:flex space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  className={`cursor-pointer transition ${
-                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : "hover:text-[var(--color-primary)]"
+                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
+                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
                   }`}
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") scrollTo(id); }}
                 >
                   {label}
                 </li>
               ))}
             </ul>
-            <div className="flex items-center space-x-4">
+
+            {/* Mobile Controls */}
+            <div className="flex items-center space-x-4 md:hidden">
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
@@ -662,114 +527,56 @@ export default function App() {
               >
                 🎨
               </button>
+
+              {/* Hamburger Menu Toggle */}
+              <button
+                aria-label="Toggle menu"
+                onClick={() => setMenuOpen((open) => !open)}
+                className="p-2 rounded-md border border-gray-500 dark:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)]"
+              >
+                <svg
+                  className="h-6 w-6 text-gray-800 dark:text-gray-200"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {menuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
             </div>
           </div>
+
+          {/* Mobile Menu */}
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.ul
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
+              >
+                {navItems.map(({ label, id }) => (
+                  <li
+                    key={id}
+                    onClick={() => scrollTo(id)}
+                    className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
+                      activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
+                    }`}
+                  >
+                    {label}
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
         </nav>
-
-        {/* Mobile Nav & Hamburger */}
-        <div className="fixed top-0 right-0 z-50 md:hidden flex items-center space-x-4 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 w-full justify-between">
-          <div
-            onClick={() => scrollTo("hero")}
-            className="text-xl font-bold cursor-pointer select-none"
-          >
-            Meet Gojiya
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              aria-label="Toggle Dark Mode"
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full text-white transition"
-              style={{ backgroundColor: colors.primary }}
-            >
-              {darkMode ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  stroke="none"
-                >
-                  <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                </svg>
-              )}
-            </button>
-            <button
-              aria-label="Cycle Color Theme"
-              onClick={cycleTheme}
-              className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
-              title="Cycle Color Theme"
-            >
-              🎨
-            </button>
-            <button
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)]"
-              style={{ backgroundColor: colors.primary }}
-            >
-              {mobileMenuOpen ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu Slide-in */}
-        <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
-          <button
-            className="close-button"
-            aria-label="Close menu"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            &times;
-          </button>
-          <nav>
-            <ul>
-              {navItems.map(({ label, id }) => (
-                <li
-                  key={id}
-                  tabIndex={0}
-                  onClick={() => scrollTo(id)}
-                  onKeyDown={(e) => { if (e.key === "Enter") scrollTo(id); }}
-                >
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
 
         <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
           {/* Hero */}
@@ -873,7 +680,7 @@ export default function App() {
                     href={projects[currentProject].live}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover-underline font-semibold"
+                    className="hover:underline font-semibold transition transform hover:scale-105"
                     style={{ color: colors.primary }}
                   >
                     Live Demo
@@ -882,7 +689,7 @@ export default function App() {
                     href={projects[currentProject].link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover-underline font-semibold"
+                    className="hover:underline font-semibold transition transform hover:scale-105"
                     style={{ color: colors.primary }}
                   >
                     GitHub
@@ -954,7 +761,6 @@ export default function App() {
           </SectionReveal>
         </main>
 
-        {/* Footer */}
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
@@ -963,7 +769,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
@@ -975,7 +781,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LinkedIn"
-              className="social-icon hover:text-current transition"
+              className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
@@ -985,7 +791,6 @@ export default function App() {
           </div>
         </footer>
 
-        {/* Resume Button */}
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
@@ -1013,26 +818,6 @@ export default function App() {
           </svg>
           <span>Resume</span>
         </a>
-
-        {/* Back to Top Button */}
-        {showBackToTop && (
-          <button
-            className="back-to-top"
-            aria-label="Back to top"
-            onClick={scrollToTop}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-        )}
       </div>
     </>
   );
