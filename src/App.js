@@ -39,7 +39,7 @@ const themeColors = {
   },
 };
 
-// 3D Cursor
+// 3D Cursor component
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
@@ -71,7 +71,7 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive Particles
+// Interactive particles component
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
@@ -349,7 +349,7 @@ export default function App() {
     const yOffset = -80;
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
-    setMenuOpen(false);
+    setMenuOpen(false); // Close menu after clicking nav link
   };
 
   const sendEmail = (e) => {
@@ -589,6 +589,7 @@ export default function App() {
             </div>
           </div>
 
+          {/* Mobile Menu */}
           <AnimatePresence>
             {menuOpen && (
               <motion.ul
