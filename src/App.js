@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import emailjs from "emailjs-com";
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-// Define theme colors (used as CSS variables)
+// Define your theme colors (used as CSS variables)
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
@@ -40,7 +40,7 @@ const themeColors = {
   },
 };
 
-// 3D Shapes
+// 3D Shapes from before for Floating3DCanvas, unchanged
 function RotatingTorusKnot({ colorPrimary, colorHover, ...props }) {
   const mesh = useRef();
   const [hovered, setHovered] = useState(false);
@@ -99,6 +99,73 @@ function RotatingIcosahedron({ color, ...props }) {
   );
 }
 
+// New: Interactive Particles Component for Canvas
+function InteractiveParticles({ color }) {
+  const particlesCount = 150;
+  const mesh = useRef();
+  const velocities = useRef(
+    new Array(particlesCount).fill().map(() => ({
+      x: (Math.random() - 0.5) * 0.002,
+      y: (Math.random() - 0.5) * 0.002,
+      z: (Math.random() - 0.5) * 0.002,
+    }))
+  );
+
+  // Positions array for particles
+  const positions = useRef(
+    new Float32Array(particlesCount * 3).map(() => (Math.random() - 0.5) * 10)
+  );
+
+  useFrame(({ mouse }) => {
+    if (!mesh.current) return;
+    for (let i = 0; i < particlesCount; i++) {
+      positions.current[i * 3] += velocities.current[i].x;
+      positions.current[i * 3 + 1] += velocities.current[i].y;
+      positions.current[i * 3 + 2] += velocities.current[i].z;
+
+      // Simple bounds and reverse velocity
+      for (let axis = 0; axis < 3; axis++) {
+        if (positions.current[i * 3 + axis] > 5 || positions.current[i * 3 + axis] < -5) {
+          velocities.current[i][['x','y','z'][axis]] *= -1;
+        }
+      }
+
+      // Repel from mouse position on X,Y plane
+      if (mouse.x && mouse.y) {
+        const dx = positions.current[i * 3] - mouse.x * 10;
+        const dy = positions.current[i * 3 + 1] - mouse.y * 10;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < 1) {
+          velocities.current[i].x += dx * 0.0005;
+          velocities.current[i].y += dy * 0.0005;
+        }
+      }
+    }
+    mesh.current.geometry.attributes.position.needsUpdate = true;
+    mesh.current.position.z = Math.sin(Date.now() * 0.001) * 0.5;
+  });
+
+  return (
+    <points ref={mesh}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions.current}
+          count={particlesCount}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.05}
+        color={color}
+        sizeAttenuation={true}
+        opacity={0.7}
+        transparent={true}
+      />
+    </points>
+  );
+}
+
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
   return (
@@ -126,16 +193,7 @@ function Floating3DCanvas({ theme }) {
           colorHover={colors.threeColor2}
         />
         <RotatingIcosahedron color={colors.threeColor2} position={[2, 0, 0]} />
-        <Stars
-          radius={100}
-          depth={50}
-          count={500}
-          factor={5}
-          saturation={50}
-          fade
-          speed={1}
-          color={colors.particlesColor}
-        />
+        <InteractiveParticles color={colors.particlesColor} />
       </Suspense>
       <OrbitControls
         autoRotate
@@ -144,6 +202,29 @@ function Floating3DCanvas({ theme }) {
         enablePan={false}
       />
     </Canvas>
+  );
+}
+
+// Animated SVG Icon for Skills (simple pulse animation)
+function AnimatedSkillIcon() {
+  return (
+    <motion.svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 64 64"
+      width="30"
+      height="30"
+      fill="var(--color-primary)"
+      initial={{ scale: 1 }}
+      animate={{
+        scale: [1, 1.15, 1],
+        rotate: [0, 15, -15, 0],
+        transition: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+      }}
+      style={{ marginRight: 8 }}
+    >
+      <circle cx="32" cy="32" r="14" stroke="var(--color-primary)" strokeWidth="3" fill="none" />
+      <path d="M32 20 L32 44 M20 32 L44 32" stroke="var(--color-primary)" strokeWidth="3" />
+    </motion.svg>
   );
 }
 
@@ -173,10 +254,11 @@ export default function App() {
   const [contactStatus, setContactStatus] = useState(null);
   const formRef = useRef(null);
 
+  // For parallax hero effect
+  const [scrollY, setScrollY] = useState(0);
+
   useEffect(() => {
     localStorage.setItem("theme", theme);
-
-    // Update CSS variables dynamically on theme change
     const root = document.documentElement;
     const colors = themeColors[theme];
     if (colors) {
@@ -197,6 +279,7 @@ export default function App() {
     const sections = navItems.map(({ id }) => document.getElementById(id));
     const onScroll = () => {
       const scrollTop = window.scrollY;
+      setScrollY(scrollTop);
       const docHeight = document.body.scrollHeight - window.innerHeight;
       setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
       setScrolled(scrollTop > 30);
@@ -445,31 +528,31 @@ export default function App() {
             <motion.h1
               initial={{ y: -60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
+              transition={{ duration: 1.2 }}
               className="text-6xl font-extrabold tracking-tight"
-              style={{ color: "var(--color-primary)" }}
+              style={{
+                color: "var(--color-primary)",
+                transform: `translateY(${scrollY * 0.2}px)`,
+                transition: "transform 0.1s ease-out",
+              }}
             >
-              {/* Animated Text with subtle scaling */}
-              <motion.span
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 1, delay: 0.5 }}
-                style={{ display: "inline-block" }}
-              >
-                Meet Gojiya
-              </motion.span>
+              Meet Gojiya
             </motion.h1>
             <motion.p
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
+              transition={{ duration: 1.5 }}
               className="max-w-xl text-lg md:text-xl"
+              style={{
+                transform: `translateY(${scrollY * 0.1}px)`,
+                transition: "transform 0.15s ease-out",
+              }}
             >
               Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
               experiences.
             </motion.p>
             <motion.button
-              whileHover={{ scale: 1.1, boxShadow: "0 0 15px var(--color-primary-light)" }}
+              whileHover={{ scale: 1.1, boxShadow: "0 0 12px var(--color-primary)" }}
               whileTap={{ scale: 0.95 }}
               onClick={() => scrollTo("projects")}
               className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
@@ -547,13 +630,14 @@ export default function App() {
               className="flex flex-wrap justify-center gap-4"
             >
               {skills.map((skill) => (
-                <span
+                <motion.span
                   key={skill}
-                  className="px-5 py-2 rounded-full text-white font-semibold cursor-default select-none transition glass-card"
+                  className="px-5 py-2 rounded-full text-white font-semibold cursor-default select-none transition glass-card flex items-center justify-center"
                   style={{ backgroundColor: "var(--color-primary)" }}
+                  whileHover={{ scale: 1.1, boxShadow: "0 0 12px var(--color-primary-light)" }}
                 >
-                  {skill}
-                </span>
+                  <AnimatedSkillIcon /> {skill}
+                </motion.span>
               ))}
             </motion.div>
           </section>
