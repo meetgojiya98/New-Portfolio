@@ -343,13 +343,20 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Keep this for desktop nav smooth scrolling + console logs for debugging
   const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const yOffset = -80;
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    window.scrollTo({ top: y, behavior: "smooth" });
+    console.log("Scrolling to:", id);
     setMenuOpen(false);
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) {
+        console.warn("Element not found:", id);
+        return;
+      }
+      const yOffset = -80;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }, 100);
   };
 
   const sendEmail = (e) => {
@@ -425,7 +432,11 @@ export default function App() {
 
   return (
     <>
+      {/* Global smooth scroll */}
       <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
         :root {
           --color-primary: ${colors.primary};
           --color-primary-dark: ${colors.primaryDark};
@@ -589,7 +600,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Mobile Menu */}
           <AnimatePresence>
             {menuOpen && (
               <motion.ul
@@ -598,20 +608,18 @@ export default function App() {
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3 }}
                 className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
-                role="menu"
               >
                 {navItems.map(({ label, id }) => (
                   <li key={id} className="border-b border-gray-200 dark:border-gray-700">
-                    <button
-                      role="menuitem"
-                      tabIndex={0}
-                      onClick={() => scrollTo(id)}
-                      className={`w-full text-left px-6 py-4 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
+                    <a
+                      href={`#${id}`}
+                      onClick={() => setMenuOpen(false)}
+                      className={`block px-6 py-4 cursor-pointer hover:bg-[var(--color-primary-light)] dark:hover:bg-[var(--color-primary-dark)] text-lg ${
                         activeSection === id ? "font-semibold text-[var(--color-primary)]" : ""
                       }`}
                     >
                       {label}
-                    </button>
+                    </a>
                   </li>
                 ))}
               </motion.ul>
