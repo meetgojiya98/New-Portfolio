@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import emailjs from "emailjs-com";
 
@@ -39,14 +39,13 @@ const themeColors = {
   },
 };
 
-// ========================
-// 3D Mouse Cursor Effect
-// ========================
+// -----------
+// 3D Cursor Component
+// -----------
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
 
-  // Smooth easing of cursor position
   const pos = useRef([0, 0]);
   useFrame(() => {
     pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.1;
@@ -62,7 +61,7 @@ function Cursor3D({ color }) {
 
   return (
     <mesh ref={meshRef}>
-      <icosahedronGeometry args={[0.25, 0]} />
+      <icosahedronGeometry args={[0.2, 0]} />
       <meshStandardMaterial
         color={color}
         metalness={0.9}
@@ -74,63 +73,62 @@ function Cursor3D({ color }) {
   );
 }
 
-// ========================
-// Interactive Particles with Dynamic Lines
-// ========================
+// -----------
+// Interactive Particles Component
+// -----------
+
 function InteractiveParticles({ color }) {
-  const group = useRef();
-  const { size, viewport, mouse } = useThree();
+  const { viewport, mouse } = useThree();
 
-  const PARTICLE_COUNT = 80;
+  const PARTICLE_COUNT = 60;
   const PARTICLE_DISTANCE = 1.5;
-  const particles = useRef([]);
+  const positions = useRef([]);
   const velocities = useRef([]);
-  const linesRef = useRef();
 
-  // Initialize particles and velocities
-  if (particles.current.length === 0) {
+  // Initialize positions and velocities once
+  if (positions.current.length === 0) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.current.push({
-        position: [
-          (Math.random() - 0.5) * viewport.width * 0.8,
-          (Math.random() - 0.5) * viewport.height * 0.8,
-          (Math.random() - 0.5) * 2,
-        ],
-      });
+      positions.current.push([
+        (Math.random() - 0.5) * viewport.width * 0.8,
+        (Math.random() - 0.5) * viewport.height * 0.8,
+        (Math.random() - 0.5) * 4,
+      ]);
       velocities.current.push([
-        (Math.random() - 0.5) * 0.003,
-        (Math.random() - 0.5) * 0.003,
-        (Math.random() - 0.5) * 0.003,
+        (Math.random() - 0.5) * 0.005,
+        (Math.random() - 0.5) * 0.005,
+        (Math.random() - 0.5) * 0.005,
       ]);
     }
   }
 
-  // Particle geometry data
-  const pointsPositions = useRef(new Float32Array(PARTICLE_COUNT * 3));
-  const linesPositions = useRef(new Float32Array(PARTICLE_COUNT * PARTICLE_COUNT * 3 * 2)); // each line has 2 vertices
+  const pointsRef = useRef();
+  const linesRef = useRef();
 
   useFrame(() => {
-    // Update particle positions with velocities
+    const ptsPositions = pointsRef.current.geometry.attributes.position.array;
+    const linesPositions = linesRef.current.geometry.attributes.position.array;
+
+    // Update particle positions
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      let p = particles.current[i].position;
+      let p = positions.current[i];
       let v = velocities.current[i];
 
-      // Move particle
+      // Update position by velocity
       for (let axis = 0; axis < 3; axis++) {
         p[axis] += v[axis];
       }
 
-      // Boundary check - bounce
+      // Bounce at boundaries
       if (p[0] < -viewport.width / 2 || p[0] > viewport.width / 2) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 || p[1] > viewport.height / 2) v[1] = -v[1];
       if (p[2] < -2 || p[2] > 2) v[2] = -v[2];
 
-      // Mouse interaction: repulsion
-      const mousePos = [mouse.x * viewport.width / 2, mouse.y * viewport.height / 2];
-      const dx = p[0] - mousePos[0];
-      const dy = p[1] - mousePos[1];
+      // Mouse repulsion
+      const mx = mouse.x * viewport.width * 0.5;
+      const my = mouse.y * viewport.height * 0.5;
+      const dx = p[0] - mx;
+      const dy = p[1] - my;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
       if (dist < 1) {
         const force = (1 - dist) * 0.02;
         v[0] += (dx / dist) * force;
@@ -138,70 +136,66 @@ function InteractiveParticles({ color }) {
       }
 
       // Clamp velocity
-      velocities.current[i] = v.map((c) => Math.min(Math.max(c, -0.01), 0.01));
+      v[0] = Math.min(Math.max(v[0], -0.02), 0.02);
+      v[1] = Math.min(Math.max(v[1], -0.02), 0.02);
+      v[2] = Math.min(Math.max(v[2], -0.02), 0.02);
 
-      // Update positions buffer for points
-      pointsPositions.current[i * 3] = p[0];
-      pointsPositions.current[i * 3 + 1] = p[1];
-      pointsPositions.current[i * 3 + 2] = p[2];
+      // Update points buffer positions
+      ptsPositions[i * 3] = p[0];
+      ptsPositions[i * 3 + 1] = p[1];
+      ptsPositions[i * 3 + 2] = p[2];
     }
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
-    // Update lines buffer for close particles
+    // Update lines between close particles
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
-        const p1 = particles.current[i].position;
-        const p2 = particles.current[j].position;
+        const p1 = positions.current[i];
+        const p2 = positions.current[j];
         const dx = p1[0] - p2[0];
         const dy = p1[1] - p2[1];
         const dz = p1[2] - p2[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist < PARTICLE_DISTANCE) {
-          const alpha = 1 - dist / PARTICLE_DISTANCE;
-          // Start point
-          linesPositions.current[lineIndex++] = p1[0];
-          linesPositions.current[lineIndex++] = p1[1];
-          linesPositions.current[lineIndex++] = p1[2];
-          // End point
-          linesPositions.current[lineIndex++] = p2[0];
-          linesPositions.current[lineIndex++] = p2[1];
-          linesPositions.current[lineIndex++] = p2[2];
+          linesPositions[lineIndex++] = p1[0];
+          linesPositions[lineIndex++] = p1[1];
+          linesPositions[lineIndex++] = p1[2];
+          linesPositions[lineIndex++] = p2[0];
+          linesPositions[lineIndex++] = p2[1];
+          linesPositions[lineIndex++] = p2[2];
         }
       }
     }
-
-    // Update buffer attributes
-    if (group.current) {
-      group.current.geometry.attributes.position.needsUpdate = true;
-      group.current.geometry.setDrawRange(0, lineIndex / 3);
-    }
+    linesRef.current.geometry.setDrawRange(0, lineIndex / 3);
+    linesRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
     <>
-      <points>
+      <points ref={pointsRef}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
             count={PARTICLE_COUNT}
-            array={pointsPositions.current}
+            array={new Float32Array(PARTICLE_COUNT * 3)}
             itemSize={3}
           />
         </bufferGeometry>
         <pointsMaterial
           color={color}
-          size={0.07}
-          sizeAttenuation={true}
+          size={0.08}
+          sizeAttenuation
           transparent
           opacity={0.9}
         />
       </points>
-      <lineSegments>
-        <bufferGeometry ref={group}>
+      <lineSegments ref={linesRef}>
+        <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={linesPositions.current.length / 3}
-            array={linesPositions.current}
+            count={PARTICLE_COUNT * PARTICLE_COUNT * 2}
+            array={new Float32Array(PARTICLE_COUNT * PARTICLE_COUNT * 3 * 2)}
             itemSize={3}
           />
         </bufferGeometry>
@@ -211,11 +205,13 @@ function InteractiveParticles({ color }) {
   );
 }
 
-// ========================
-// Floating3DCanvas component with 3D cursor + particles + controls + lighting
-// ========================
+// -----------
+// Floating3DCanvas with Canvas & Controls
+// -----------
+
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
+
   return (
     <Canvas
       style={{
@@ -238,29 +234,21 @@ function Floating3DCanvas({ theme }) {
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls
-        autoRotate
-        autoRotateSpeed={0.2}
-        enableZoom={false}
-        enablePan={false}
-      />
+      <OrbitControls autoRotate autoRotateSpeed={0.2} enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
 
-// ========================
-// Scroll Indicator Component (animated bouncing arrow)
-// ========================
+// -----------
+// Scroll Indicator Component
+// -----------
+
 function ScrollIndicator() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 0 }}
       animate={{ opacity: 1, y: [0, 15, 0] }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
+      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       className="absolute bottom-12 left-1/2 transform -translate-x-1/2"
       aria-label="Scroll down indicator"
     >
@@ -277,9 +265,44 @@ function ScrollIndicator() {
   );
 }
 
-// ========================
-// Main App component
-// ========================
+// -----------
+// SectionReveal component for fade-in
+// -----------
+
+function SectionReveal({ id, colors, title, children }) {
+  const controls = useAnimation();
+  const ref = useRef();
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (!ref.current) return;
+      const top = ref.current.getBoundingClientRect().top;
+      const windowHeight = window.innerHeight;
+      if (top < windowHeight - 100) {
+        controls.start({ opacity: 1, y: 0, transition: { duration: 0.8 } });
+      }
+    };
+    window.addEventListener("scroll", onScroll);
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [controls]);
+
+  return (
+    <motion.section
+      id={id}
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={controls}
+      className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
+    >
+      <motion.h2 className="text-4xl font-bold" style={{ color: colors.primary }}>
+        {title}
+      </motion.h2>
+      <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">{children}</div>
+    </motion.section>
+  );
+}
+
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
@@ -347,12 +370,7 @@ export default function App() {
     e.preventDefault();
     setContactStatus(null);
     emailjs
-      .sendForm(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        formRef.current,
-        EMAILJS_USER_ID
-      )
+      .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, formRef.current, EMAILJS_USER_ID)
       .then(() => {
         setContactStatus("SUCCESS");
         formRef.current.reset();
@@ -444,16 +462,13 @@ export default function App() {
         className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
         style={{ paddingBottom: "90px" }}
       >
-        {/* Floating 3D Canvas Background */}
         <Floating3DCanvas theme={theme} />
 
-        {/* Scroll Progress Bar */}
         <div
           className="fixed top-0 left-0 h-1 z-50 transition-all"
           style={{ width: `${scrollProgress}%`, backgroundColor: colors.primary }}
         />
 
-        {/* Navbar */}
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
@@ -474,9 +489,6 @@ export default function App() {
                   className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
                     activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
                   }`}
-                  style={{
-                    color: activeSection === id ? colors.primary : undefined,
-                  }}
                 >
                   {label}
                 </li>
@@ -486,7 +498,7 @@ export default function App() {
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-full text-white transition`}
+                className="p-2 rounded-full text-white transition"
                 style={{ backgroundColor: colors.primary }}
               >
                 {darkMode ? (
@@ -708,7 +720,6 @@ export default function App() {
           </SectionReveal>
         </main>
 
-        {/* Tailbar Footer */}
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
@@ -739,7 +750,6 @@ export default function App() {
           </div>
         </footer>
 
-        {/* Floating Resume Download Button */}
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
@@ -769,47 +779,5 @@ export default function App() {
         </a>
       </div>
     </>
-  );
-}
-
-// ========================
-// SectionReveal component for fade-in on scroll
-// ========================
-function SectionReveal({ id, colors, title, children }) {
-  const controls = useAnimation();
-  const ref = useRef();
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!ref.current) return;
-      const top = ref.current.getBoundingClientRect().top;
-      const windowHeight = window.innerHeight;
-      if (top < windowHeight - 100) {
-        controls.start({ opacity: 1, y: 0, transition: { duration: 0.8 } });
-      }
-    };
-    window.addEventListener("scroll", onScroll);
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [controls]);
-
-  return (
-    <motion.section
-      id={id}
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={controls}
-      className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
-    >
-      <motion.h2
-        className="text-4xl font-bold"
-        style={{ color: colors.primary }}
-      >
-        {title}
-      </motion.h2>
-      <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">
-        {children}
-      </div>
-    </motion.section>
   );
 }
