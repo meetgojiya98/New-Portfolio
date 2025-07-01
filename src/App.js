@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
-import Tilt from "react-parallax-tilt";
 import emailjs from "emailjs-com";
 
-// NAV ITEMS
 const navItems = [
   { label: "Home", id: "hero" },
   { label: "About Me", id: "about" },
@@ -14,7 +12,6 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-// THEMES
 const themeColors = {
   saffron: {
     primary: "#f59e0b",
@@ -42,14 +39,11 @@ const themeColors = {
   },
 };
 
-// 3D Cursor: disabled on mobile
+// 3D Cursor
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
   const pos = useRef([0, 0]);
-
-  // Hide on small screens
-  if (typeof window !== "undefined" && window.innerWidth < 768) return null;
 
   useFrame(() => {
     pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.15;
@@ -64,7 +58,7 @@ function Cursor3D({ color }) {
   });
 
   return (
-    <mesh ref={meshRef} aria-hidden="true">
+    <mesh ref={meshRef}>
       <icosahedronGeometry args={[0.25, 0]} />
       <meshStandardMaterial
         color={color}
@@ -77,12 +71,11 @@ function Cursor3D({ color }) {
   );
 }
 
-// Interactive Particles with reduced count on mobile
+// Interactive Particles
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
-  // Adjust particle count based on screen width
-  const PARTICLE_COUNT = typeof window !== "undefined" && window.innerWidth < 768 ? 50 : 100;
+  const PARTICLE_COUNT = 100;
   const PARTICLE_DISTANCE = 1.7;
   const positions = useRef([]);
   const velocities = useRef([]);
@@ -117,10 +110,12 @@ function InteractiveParticles({ color }) {
         p[axis] += v[axis];
       }
 
+      // Bounce boundaries bigger for full viewport + some margin
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
+      // Stronger mouse repulsion with smoothing
       const mx = mouse.x * viewport.width * 0.5;
       const my = mouse.y * viewport.height * 0.5;
       const dx = p[0] - mx;
@@ -132,6 +127,7 @@ function InteractiveParticles({ color }) {
         v[1] += (dy / dist) * force;
       }
 
+      // Clamp velocity with a bit more speed for liveliness
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
       v[2] = Math.min(Math.max(v[2], -0.04), 0.04);
@@ -142,6 +138,7 @@ function InteractiveParticles({ color }) {
     }
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
 
+    // Update lines
     let lineIndex = 0;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       for (let j = i + 1; j < PARTICLE_COUNT; j++) {
@@ -167,7 +164,7 @@ function InteractiveParticles({ color }) {
 
   return (
     <>
-      <points ref={pointsRef} aria-hidden="true">
+      <points ref={pointsRef}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
@@ -185,7 +182,7 @@ function InteractiveParticles({ color }) {
           depthWrite={false}
         />
       </points>
-      <lineSegments ref={linesRef} aria-hidden="true">
+      <lineSegments ref={linesRef}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
@@ -230,7 +227,6 @@ function Floating3DCanvas({ theme }) {
   );
 }
 
-// Scroll Indicator
 function ScrollIndicator({ onClick }) {
   return (
     <motion.button
@@ -261,7 +257,6 @@ function ScrollIndicator({ onClick }) {
   );
 }
 
-// Section Reveal with staggered children for better UX
 function SectionReveal({ id, colors, title, children }) {
   const controls = useAnimation();
   const ref = useRef();
@@ -272,198 +267,27 @@ function SectionReveal({ id, colors, title, children }) {
       const top = ref.current.getBoundingClientRect().top;
       const windowHeight = window.innerHeight;
       if (top < windowHeight - 100) {
-        controls.start("visible");
+        controls.start({ opacity: 1, y: 0, transition: { duration: 0.8 } });
       }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll);
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, [controls]);
-
-  // Children wrapped with stagger
-  const containerVariants = {
-    hidden: { opacity: 0, y: 40 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { staggerChildren: 0.15, duration: 0.8 },
-    },
-  };
-
-  const childVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
 
   return (
     <motion.section
       id={id}
       ref={ref}
-      initial="hidden"
+      initial={{ opacity: 0, y: 40 }}
       animate={controls}
-      variants={containerVariants}
-      className="max-w-4xl mx-auto px-4 text-center relative z-10"
-      aria-labelledby={`${id}-title`}
-      tabIndex={-1}
+      className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
     >
-      <motion.h2
-        id={`${id}-title`}
-        className="text-4xl font-bold sticky top-20 bg-white dark:bg-gray-900 py-2 z-30"
-        style={{ color: colors.primary }}
-        variants={childVariants}
-      >
+      <motion.h2 className="text-4xl font-bold" style={{ color: colors.primary }}>
         {title}
       </motion.h2>
-      <motion.div variants={childVariants} className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">
-        {children}
-      </motion.div>
+      <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">{children}</div>
     </motion.section>
-  );
-}
-
-// Tooltip component for skills
-function Tooltip({ text, children }) {
-  return (
-    <div className="relative group inline-block">
-      {children}
-      <span
-        role="tooltip"
-        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-gray-800 text-white text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity select-none whitespace-nowrap"
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-// Loading skeleton for project description
-function SkeletonLoader() {
-  return (
-    <div className="animate-pulse space-y-2">
-      <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mx-auto"></div>
-      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full mx-auto"></div>
-      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full mx-auto"></div>
-      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6 mx-auto"></div>
-    </div>
-  );
-}
-
-// Social Icon with animated stroke on hover
-function SocialIcon({ href, label, children, color }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={label}
-      className="relative group inline-block"
-      style={{ color }}
-    >
-      <svg
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-5 h-5 transition-colors duration-300"
-        viewBox="0 0 24 24"
-      >
-        {children}
-        <motion.path
-          initial={{ pathLength: 0 }}
-          whileHover={{ pathLength: 1, stroke: color }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-        />
-      </svg>
-    </a>
-  );
-}
-
-// Hamburger menu for mobile nav
-function MobileMenu({ navItems, activeSection, onSelect, colors }) {
-  const [open, setOpen] = useState(false);
-
-  // Close on selecting nav item
-  const handleSelect = (id) => {
-    setOpen(false);
-    onSelect(id);
-  };
-
-  return (
-    <>
-      <button
-        aria-label="Toggle menu"
-        aria-expanded={open}
-        className="md:hidden p-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        onClick={() => setOpen(!open)}
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke={colors.primary}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          viewBox="0 0 24 24"
-        >
-          {open ? (
-            <path d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path d="M3 12h18M3 6h18M3 18h18" />
-          )}
-        </svg>
-      </button>
-      <motion.nav
-        initial={{ x: "100%" }}
-        animate={{ x: open ? 0 : "100%" }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed top-0 right-0 bottom-0 w-64 bg-white dark:bg-gray-900 shadow-lg z-50 p-6 flex flex-col space-y-6 md:hidden"
-      >
-        {navItems.map(({ label, id }) => (
-          <button
-            key={id}
-            onClick={() => handleSelect(id)}
-            className={`text-left text-lg font-medium transition-colors ${
-              activeSection === id ? `text-[var(--color-primary)] font-semibold` : "text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </motion.nav>
-      {open && (
-        <div
-          onClick={() => setOpen(false)}
-          className="fixed inset-0 bg-black bg-opacity-30 z-40 md:hidden"
-          aria-hidden="true"
-        />
-      )}
-    </>
-  );
-}
-
-// Back to Top button
-function BackToTop({ visible, onClick, colors }) {
-  return (
-    <motion.button
-      aria-label="Back to top"
-      onClick={onClick}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 30 }}
-      transition={{ duration: 0.3 }}
-      className="fixed bottom-28 right-6 bg-[var(--color-primary)] text-white p-3 rounded-full shadow-lg focus:outline-none focus:ring-4 focus:ring-[var(--color-primary-light)]"
-      style={{ backgroundColor: colors.primary }}
-    >
-      <svg
-        className="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-      </svg>
-    </motion.button>
   );
 }
 
@@ -488,11 +312,7 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const [contactStatus, setContactStatus] = useState(null);
-  const [backToTopVisible, setBackToTopVisible] = useState(false);
   const formRef = useRef(null);
-
-  // Loading state for project descriptions (simulate loading)
-  const [loadingProject, setLoadingProject] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -512,7 +332,6 @@ export default function App() {
       const docHeight = document.body.scrollHeight - window.innerHeight;
       setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
       setScrolled(scrollTop > 30);
-      setBackToTopVisible(scrollTop > 400);
 
       let current = "hero";
       sections.forEach((section) => {
@@ -535,25 +354,17 @@ export default function App() {
     window.scrollTo({ top: y, behavior: "smooth" });
   };
 
-  // Simulate loading on project change
-  const [currentProject, setCurrentProject] = useState(0);
-  const projectTimeout = useRef();
-
-  useEffect(() => {
-    setLoadingProject(true);
-    projectTimeout.current = setTimeout(() => {
-      setCurrentProject((prev) => (prev + 1) % projects.length);
-      setLoadingProject(false);
-    }, 6000);
-    return () => clearTimeout(projectTimeout.current);
-  }, [currentProject]);
-
-  const cycleTheme = () => {
-    const currentIndex = validThemes.indexOf(theme);
-    setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
+  const sendEmail = (e) => {
+    e.preventDefault();
+    setContactStatus(null);
+    emailjs
+      .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, formRef.current, EMAILJS_USER_ID)
+      .then(() => {
+        setContactStatus("SUCCESS");
+        formRef.current.reset();
+      })
+      .catch(() => setContactStatus("FAILED"));
   };
-
-  const colors = themeColors[theme] || themeColors.saffron;
 
   const projects = [
     {
@@ -597,22 +408,22 @@ export default function App() {
     "Selenium",
   ];
 
-  const sendEmail = (e) => {
-    e.preventDefault();
-    setContactStatus(null);
-    emailjs
-      .sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, formRef.current, EMAILJS_USER_ID)
-      .then(() => {
-        setContactStatus("SUCCESS");
-        formRef.current.reset();
-      })
-      .catch(() => setContactStatus("FAILED"));
+  const [currentProject, setCurrentProject] = useState(0);
+  const projectTimeout = useRef();
+
+  useEffect(() => {
+    projectTimeout.current = setTimeout(() => {
+      setCurrentProject((prev) => (prev + 1) % projects.length);
+    }, 6000);
+    return () => clearTimeout(projectTimeout.current);
+  }, [currentProject]);
+
+  const cycleTheme = () => {
+    const currentIndex = validThemes.indexOf(theme);
+    setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
   };
 
-  // Back to Top Handler
-  const handleBackToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
-  // Accessibility: Trap focus in mobile menu when open? (Could be added in future)
+  const colors = themeColors[theme] || themeColors.saffron;
 
   return (
     <>
@@ -621,164 +432,61 @@ export default function App() {
           --color-primary: ${colors.primary};
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
-          --scrollbar-thumb: ${colors.primaryLight};
-          --scrollbar-track: transparent;
         }
-        html, body, #root {
-          transition: background-color 0.6s ease, color 0.6s ease;
-          scroll-behavior: smooth;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: var(--scrollbar-track);
-        }
-        ::-webkit-scrollbar-thumb {
-          background-color: var(--scrollbar-thumb);
-          border-radius: 10px;
-          border: 2px solid transparent;
-          background-clip: content-box;
-          transition: background-color 0.3s ease;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background-color: var(--color-primary);
-        }
-        /* Animated gradient text */
-        .gradient-text {
-          background: linear-gradient(270deg, var(--color-primary), var(--color-primary-light), var(--color-primary-dark));
-          background-size: 600% 600%;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: gradientShift 8s ease infinite;
-        }
-        @keyframes gradientShift {
-          0% {background-position: 0% 50%;}
-          50% {background-position: 100% 50%;}
-          100% {background-position: 0% 50%;}
-        }
-        /* Button hover with scale and color shift */
-        .btn-animated:hover, .btn-animated:focus {
-          transform: scale(1.05);
-          background-color: var(--color-primary-dark) !important;
-          box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-          outline: none;
-        }
-        /* Link underline animation */
-        .link-underline {
-          position: relative;
-          color: inherit;
-          text-decoration: none;
-        }
-        .link-underline::after {
-          content: "";
-          position: absolute;
-          width: 0%;
-          height: 2px;
-          bottom: 0;
-          left: 0;
-          background-color: var(--color-primary);
-          transition: width 0.3s ease;
-        }
-        .link-underline:hover::after, .link-underline:focus::after {
-          width: 100%;
-          outline: none;
-        }
-        /* Tilt card shadow & depth */
-        .tilt-card {
+        .glass-card {
           background: rgba(255 255 255 / 0.15);
           backdrop-filter: saturate(180%) blur(10px);
-          border-radius: 1rem;
-          transition: box-shadow 0.3s ease, transform 0.3s ease;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .glass-card:hover {
+          background: rgba(255 255 255 / 0.3);
+          box-shadow: 0 0 20px var(--color-primary-light);
+          transform: translateY(-5px);
           cursor: pointer;
-        }
-        .tilt-card:hover, .tilt-card:focus-within {
-          box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-          outline: none;
-        }
-        /* Responsive Improvements */
-        @media (max-width: 768px) {
-          .btn-animated {
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-          }
-          nav ul li {
-            padding: 1rem 0.5rem;
-            font-size: 1.1rem;
-          }
-          textarea, input {
-            font-size: 1rem;
-          }
         }
       `}</style>
 
       <div
         className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
-        style={{ paddingBottom: "110px" }}
+        style={{ paddingBottom: "90px" }}
       >
-        {/* 3D Canvas */}
         <Floating3DCanvas theme={theme} />
 
-        {/* Scroll Progress Bar */}
         <div
           className="fixed top-0 left-0 h-1 z-50 transition-all"
           style={{ width: `${scrollProgress}%`, backgroundColor: colors.primary }}
-          aria-hidden="true"
         />
 
-        {/* Navbar */}
         <nav
           className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
             scrolled ? "shadow-lg" : ""
           }`}
-          role="navigation"
-          aria-label="Primary Navigation"
         >
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
               onClick={() => scrollTo("hero")}
-              tabIndex={0}
-              role="link"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") scrollTo("hero");
-              }}
-              className="text-2xl font-bold cursor-pointer select-none gradient-text"
+              className="text-2xl font-bold cursor-pointer select-none"
             >
               Meet Gojiya
             </div>
-
-            {/* Desktop Nav */}
             <ul className="hidden md:flex space-x-10 font-medium text-lg">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  onKeyDown={(e) => e.key === "Enter" && scrollTo(id)}
-                  tabIndex={0}
-                  className={`cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
                     activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
                   }`}
-                  style={{ color: activeSection === id ? colors.primary : undefined }}
-                  aria-current={activeSection === id ? "page" : undefined}
                 >
-                  <span className="link-underline">{label}</span>
+                  {label}
                 </li>
               ))}
             </ul>
-
-            {/* Mobile Hamburger Menu */}
-            <MobileMenu navItems={navItems} activeSection={activeSection} onSelect={scrollTo} colors={colors} />
-
-            {/* Controls */}
             <div className="flex items-center space-x-4">
               <button
                 aria-label="Toggle Dark Mode"
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 btn-animated"
+                className="p-2 rounded-full text-white transition"
                 style={{ backgroundColor: colors.primary }}
               >
                 {darkMode ? (
@@ -807,11 +515,8 @@ export default function App() {
               </button>
               <button
                 aria-label="Cycle Color Theme"
-                onClick={() => {
-                  const currentIndex = validThemes.indexOf(theme);
-                  setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
-                }}
-                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                onClick={cycleTheme}
+                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition"
                 title="Cycle Color Theme"
               >
                 🎨
@@ -820,9 +525,7 @@ export default function App() {
           </div>
         </nav>
 
-        {/* Main content */}
-        <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth" tabIndex={-1}>
-
+        <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
           {/* Hero */}
           <section
             id="hero"
@@ -832,8 +535,8 @@ export default function App() {
               initial={{ y: -60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1.2 }}
-              className="text-6xl font-extrabold tracking-tight gradient-text"
-              tabIndex={-1}
+              className="text-6xl font-extrabold tracking-tight"
+              style={{ color: colors.primary }}
             >
               Meet Gojiya
             </motion.h1>
@@ -843,13 +546,14 @@ export default function App() {
               transition={{ duration: 1.5 }}
               className="max-w-xl text-lg md:text-xl"
             >
-              Full-stack Developer & AI Enthusiast — Building beautiful, scalable web experiences.
+              Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
+              experiences.
             </motion.p>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => scrollTo("projects")}
-              className="px-8 py-3 text-white rounded-lg shadow-lg transition btn-animated"
+              className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10"
               style={{ backgroundColor: colors.primary }}
             >
               See My Work
@@ -889,16 +593,13 @@ export default function App() {
           <SectionReveal id="skills" colors={colors} title="Skills">
             <div className="flex flex-wrap justify-center gap-4">
               {skills.map((skill) => (
-                <Tooltip key={skill} text={`Skill: ${skill}`}>
-                  <span
-                    tabIndex={0}
-                    className="glass-card px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    style={{ backgroundColor: colors.primary }}
-                    aria-label={`Skill: ${skill}`}
-                  >
-                    {skill}
-                  </span>
-                </Tooltip>
+                <span
+                  key={skill}
+                  className="glass-card px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  {skill}
+                </span>
               ))}
             </div>
           </SectionReveal>
@@ -906,67 +607,50 @@ export default function App() {
           {/* Projects */}
           <SectionReveal id="projects" colors={colors} title="Projects">
             <AnimatePresence mode="wait" initial={false}>
-              {loadingProject ? (
-                <SkeletonLoader key="loading-skeleton" />
-              ) : (
-                <Tilt
-                  className="tilt-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
-                  tiltMaxAngleX={7}
-                  tiltMaxAngleY={7}
-                  glareEnable={false}
-                  key={projects[currentProject].title}
-                  transitionSpeed={400}
-                  tabIndex={0}
-                  role="group"
-                  aria-label={`Project card: ${projects[currentProject].title}`}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, x: 100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    transition={{ duration: 0.8 }}
-                  >
-                    <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
-                      {projects[currentProject].title}
-                    </h3>
-                    <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                      {projects[currentProject].description}
-                    </p>
+              <motion.div
+                key={projects[currentProject].title}
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.8 }}
+                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
+              >
+                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
+                  {projects[currentProject].title}
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
+                  {projects[currentProject].description}
+                </p>
 
-                    <div className="flex justify-center gap-6">
-                      <a
-                        href={projects[currentProject].live}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline font-semibold link-underline"
-                        style={{ color: colors.primary }}
-                      >
-                        Live Demo
-                      </a>
-                      <a
-                        href={projects[currentProject].link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline font-semibold link-underline"
-                        style={{ color: colors.primary }}
-                      >
-                        GitHub
-                      </a>
-                    </div>
-                  </motion.div>
-                </Tilt>
-              )}
+                <div className="flex justify-center gap-6">
+                  <a
+                    href={projects[currentProject].live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline font-semibold"
+                    style={{ color: colors.primary }}
+                  >
+                    Live Demo
+                  </a>
+                  <a
+                    href={projects[currentProject].link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline font-semibold"
+                    style={{ color: colors.primary }}
+                  >
+                    GitHub
+                  </a>
+                </div>
+              </motion.div>
             </AnimatePresence>
 
-            <div className="flex justify-center gap-4 mt-4" role="tablist" aria-label="Project navigation">
+            <div className="flex justify-center gap-4 mt-4">
               {projects.map((_, idx) => (
                 <button
                   key={idx}
                   aria-label={`Go to project ${idx + 1}`}
-                  role="tab"
-                  aria-selected={idx === currentProject}
-                  tabIndex={idx === currentProject ? 0 : -1}
-                  className={`w-4 h-4 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                  className={`w-4 h-4 rounded-full ${
                     idx === currentProject ? `bg-[var(--color-primary)]` : "bg-gray-400"
                   } transition`}
                   onClick={() => setCurrentProject(idx)}
@@ -978,20 +662,13 @@ export default function App() {
 
           {/* Contact */}
           <SectionReveal id="contact" colors={colors} title="Contact Me">
-            <form
-              ref={formRef}
-              onSubmit={sendEmail}
-              className="space-y-6 text-left"
-              aria-live="polite"
-              noValidate
-            >
+            <form ref={formRef} onSubmit={sendEmail} className="space-y-6 text-left">
               <input
                 type="text"
                 name="user_name"
                 placeholder="Your Name"
                 required
-                aria-required="true"
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] transition"
+                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
               />
               <input
@@ -999,8 +676,7 @@ export default function App() {
                 name="user_email"
                 placeholder="Your Email"
                 required
-                aria-required="true"
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] transition"
+                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
                 style={{ borderColor: colors.primary }}
               />
               <textarea
@@ -1008,13 +684,12 @@ export default function App() {
                 placeholder="Your Message"
                 rows={6}
                 required
-                aria-required="true"
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] transition resize-none"
+                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition resize-none"
                 style={{ borderColor: colors.primary }}
               />
               <button
                 type="submit"
-                className="w-full py-3 text-white rounded-lg transition btn-animated"
+                className="w-full py-3 text-white rounded-lg transition"
                 style={{ backgroundColor: colors.primary }}
                 onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
@@ -1023,34 +698,17 @@ export default function App() {
               </button>
             </form>
             {contactStatus === "SUCCESS" && (
-              <p
-                className="mt-4 text-green-500 font-semibold"
-                role="alert"
-                tabIndex={-1}
-              >
-                Message sent successfully!
-              </p>
+              <p className="mt-4 text-green-500 font-semibold">Message sent successfully!</p>
             )}
             {contactStatus === "FAILED" && (
-              <p
-                className="mt-4 text-red-500 font-semibold"
-                role="alert"
-                tabIndex={-1}
-              >
+              <p className="mt-4 text-red-500 font-semibold">
                 Oops! Something went wrong. Please try again.
               </p>
             )}
           </SectionReveal>
         </main>
 
-        {/* Back to top button */}
-        <BackToTop visible={backToTopVisible} onClick={handleBackToTop} colors={colors} />
-
-        {/* Footer */}
-        <footer
-          className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40"
-          role="contentinfo"
-        >
+        <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
             <a
@@ -1061,13 +719,7 @@ export default function App() {
               className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
-              {/* GitHub Icon */}
-              <svg
-                fill="currentColor"
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
               </svg>
             </a>
@@ -1079,25 +731,18 @@ export default function App() {
               className="hover:text-current transition"
               style={{ color: colors.primary }}
             >
-              {/* LinkedIn Icon */}
-              <svg
-                fill="currentColor"
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
+              <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
               </svg>
             </a>
           </div>
         </footer>
 
-        {/* Resume Button */}
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none btn-animated"
+          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none"
           title="Download Resume"
           download
           style={{ backgroundColor: colors.primary }}
@@ -1111,7 +756,6 @@ export default function App() {
             stroke="currentColor"
             strokeWidth={2}
             viewBox="0 0 24 24"
-            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
