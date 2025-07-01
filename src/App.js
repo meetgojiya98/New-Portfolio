@@ -473,7 +473,7 @@ export default function App() {
             </div>
 
             {/* Desktop Nav */}
-            <ul className="hidden md:flex space-x-10 font-medium text-lg">
+            <ul className="hidden md:flex space-x-10 font-medium text-lg items-center">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
@@ -485,6 +485,50 @@ export default function App() {
                   {label}
                 </li>
               ))}
+
+              {/* Dark mode & theme buttons on desktop */}
+              <li>
+                <button
+                  aria-label="Toggle Dark Mode"
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2 rounded-full text-white transition ml-6"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  {darkMode ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      stroke="none"
+                    >
+                      <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                    </svg>
+                  )}
+                </button>
+              </li>
+              <li>
+                <button
+                  aria-label="Cycle Color Theme"
+                  onClick={cycleTheme}
+                  className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition ml-2"
+                  title="Cycle Color Theme"
+                >
+                  🎨
+                </button>
+              </li>
             </ul>
 
             {/* Mobile Controls */}
