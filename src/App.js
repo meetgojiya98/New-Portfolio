@@ -312,10 +312,12 @@ export default function App() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const formRef = useRef(null);
 
+  // Persist theme
   useEffect(() => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // Dark mode toggle with smooth transition
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode);
     const html = document.documentElement;
@@ -328,6 +330,7 @@ export default function App() {
     }
   }, [darkMode]);
 
+  // Scroll listener for scroll progress, shadow, and active section tracking
   useEffect(() => {
     const sections = navItems.map(({ id }) => document.getElementById(id));
     const onScroll = () => {
@@ -348,6 +351,15 @@ export default function App() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Google Analytics pageview tracking on section change
+  useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "page_view", {
+        page_path: `/#${activeSection}`,
+      });
+    }
+  }, [activeSection]);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
