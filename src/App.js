@@ -39,6 +39,54 @@ const themeColors = {
   },
 };
 
+// 1. Typewriter Text Effect
+function Typewriter({ text, speed = 55, ...props }) {
+  const [display, setDisplay] = useState("");
+  useEffect(() => {
+    let i = 0;
+    setDisplay("");
+    const t = setInterval(() => {
+      setDisplay((prev) => prev + text[i]);
+      i++;
+      if (i >= text.length) clearInterval(t);
+    }, speed);
+    return () => clearInterval(t);
+  }, [text, speed]);
+  return <span {...props}>{display}</span>;
+}
+
+// 2. Fun Facts Section
+function FunFacts({ colors }) {
+  const facts = [
+    "I meditate daily and believe music boosts productivity.",
+    "I'm a night owl and do my best work after midnight.",
+    "I once built a chatbot for a hospital in under a week.",
+    "My code style is: readable > clever.",
+    "I'm obsessed with optimizing onboarding UX.",
+    "React, FastAPI, and pandas are my go-to trio.",
+  ];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIdx((i) => (i + 1) % facts.length), 5000);
+    return () => clearTimeout(t);
+  }, [idx]);
+
+  return (
+    <motion.div
+      key={idx}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.7 }}
+      className="glass-card mx-auto mb-8 p-6 rounded-xl shadow-lg max-w-xl text-lg font-medium"
+      style={{ color: colors.primaryDark, borderLeft: `5px solid ${colors.primary}` }}
+    >
+      <span role="img" aria-label="lightbulb">💡</span> {facts[idx]}
+    </motion.div>
+  );
+}
+
 // 3D Cursor
 function Cursor3D({ color }) {
   const meshRef = useRef();
@@ -253,6 +301,7 @@ function ScrollIndicator({ onClick }) {
   );
 }
 
+// 7. Enhanced Pop Reveal Section
 function SectionReveal({ id, colors, title, children }) {
   const controls = useAnimation();
   const ref = useRef();
@@ -263,7 +312,7 @@ function SectionReveal({ id, colors, title, children }) {
       const top = ref.current.getBoundingClientRect().top;
       const windowHeight = window.innerHeight;
       if (top < windowHeight - 100) {
-        controls.start({ opacity: 1, y: 0, transition: { duration: 0.8 } });
+        controls.start({ opacity: 1, y: 0, scale: 1, transition: { duration: 0.8 } });
       }
     };
     window.addEventListener("scroll", onScroll);
@@ -275,7 +324,7 @@ function SectionReveal({ id, colors, title, children }) {
     <motion.section
       id={id}
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 40, scale: 0.97 }}
       animate={controls}
       className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
     >
@@ -290,6 +339,14 @@ function SectionReveal({ id, colors, title, children }) {
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
+
+// 9. Time-Based Greeting
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good Morning 👋";
+  if (h < 18) return "Good Afternoon 🌞";
+  return "Good Evening 🌙";
+}
 
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
@@ -312,6 +369,18 @@ export default function App() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const formRef = useRef(null);
 
+  // 5. Confetti Ref
+  const confettiRef = useRef(null);
+
+  // 8. Visit Counter
+  const [visitCount, setVisitCount] = useState(1);
+
+  // 10. Latest GitHub Repo
+  const [latestRepo, setLatestRepo] = useState(null);
+
+  // 4. For copy email button visual feedback
+  const [emailCopied, setEmailCopied] = useState(false);
+
   // Persist theme
   useEffect(() => {
     localStorage.setItem("theme", theme);
@@ -329,6 +398,19 @@ export default function App() {
       html.style.transition = "background-color 0.3s ease, color 0.3s ease";
     }
   }, [darkMode]);
+
+  // 8. Real-Time Visit Counter
+  useEffect(() => {
+    let c = Number(localStorage.getItem("visitCount") || 0) + 1;
+    setVisitCount(c);
+    localStorage.setItem("visitCount", c);
+  }, []);
+
+  // 10. Fetch Latest GitHub Repo
+  useEffect(() => {
+    fetch("https://api.github.com/users/meetgojiya98/repos?sort=updated&per_page=1")
+      .then(r => r.json()).then(data => setLatestRepo(data[0]));
+  }, []);
 
   // Scroll listener for scroll progress, shadow, and active section tracking
   useEffect(() => {
@@ -361,6 +443,17 @@ export default function App() {
     }
   }, [activeSection]);
 
+  // 6. Keyboard Navigation: Section Jump
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (["1", "2", "3", "4", "5"].includes(e.key)) {
+        scrollTo(navItems[parseInt(e.key) - 1].id);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -369,6 +462,36 @@ export default function App() {
     window.scrollTo({ top: y, behavior: "smooth" });
     setMenuOpen(false);
   };
+
+  // 5. Confetti Celebration
+  useEffect(() => {
+    if (contactStatus !== "SUCCESS" || !confettiRef.current) return;
+    const canvas = confettiRef.current;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width = 400, h = canvas.height = 120;
+    let particles = Array.from({ length: 40 }, () => ({
+      x: w / 2, y: h - 10,
+      r: Math.random() * 5 + 2,
+      c: `hsl(${Math.random() * 360},90%,60%)`,
+      vx: Math.random() * 7 - 3.5,
+      vy: Math.random() * -4 - 2,
+      g: 0.2
+    }));
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
+        ctx.fillStyle = p.c; ctx.fill();
+        p.x += p.vx; p.y += p.vy; p.vy += p.g;
+      });
+      frame++;
+      if (frame < 70) requestAnimationFrame(draw);
+      else ctx.clearRect(0, 0, w, h);
+    }
+    draw();
+  }, [contactStatus]);
 
   const sendEmail = (e) => {
     e.preventDefault();
@@ -465,7 +588,6 @@ export default function App() {
           transform: translateY(-5px);
           cursor: pointer;
         }
-        /* Focus outlines for accessibility */
         button:focus,
         a:focus,
         input:focus,
@@ -474,7 +596,6 @@ export default function App() {
           outline: 3px solid var(--color-primary);
           outline-offset: 2px;
         }
-        /* Animate theme cycling button */
         .theme-cycle-btn:active {
           transform: scale(0.9);
           transition: transform 0.15s ease;
@@ -583,6 +704,17 @@ export default function App() {
             id="hero"
             className="min-h-screen flex flex-col justify-center items-center text-center space-y-8 relative z-10"
           >
+            {/* 9. Time-based Greeting */}
+            <motion.div
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className="text-xl md:text-2xl font-semibold"
+              style={{ color: colors.primaryDark }}
+            >
+              {getGreeting()}
+            </motion.div>
+
             <motion.h1
               initial={{ y: -60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -592,14 +724,14 @@ export default function App() {
             >
               Meet Gojiya
             </motion.h1>
+            {/* 1. Typewriter subtitle */}
             <motion.p
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1.5 }}
               className="max-w-xl text-lg md:text-xl"
             >
-              Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
-              experiences.
+              <Typewriter text="Full-stack Developer & AI Enthusiast — Building beautiful, scalable web experiences." />
             </motion.p>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -640,6 +772,9 @@ export default function App() {
               opportunities for learning and growth.
             </p>
           </SectionReveal>
+
+          {/* 2. Fun Facts */}
+          <FunFacts colors={colors} />
 
           {/* Skills */}
           <SectionReveal id="skills" colors={colors} title="Skills">
@@ -712,10 +847,34 @@ export default function App() {
                 />
               ))}
             </div>
+
+            {/* 10. Latest GitHub Repo */}
+            {latestRepo && (
+              <div className="glass-card p-3 mt-8 rounded-md text-sm" style={{ color: colors.primary }}>
+                <span>Latest GitHub repo: </span>
+                <a href={latestRepo.html_url} target="_blank" rel="noopener noreferrer" className="underline font-medium">{latestRepo.name}</a>
+              </div>
+            )}
           </SectionReveal>
 
           {/* Contact */}
           <SectionReveal id="contact" colors={colors} title="Contact Me">
+            {/* 4. Copy Email Button */}
+            <div className="mb-3 flex justify-center">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText("meetgojiya98@gmail.com");
+                  setEmailCopied(true);
+                  setTimeout(() => setEmailCopied(false), 1800);
+                }}
+                className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white font-semibold shadow hover:bg-[var(--color-primary-dark)] transition"
+                style={{ backgroundColor: colors.primary }}
+                title="Copy email to clipboard"
+              >
+                {emailCopied ? "✅ Copied!" : "📋 Copy Email"}
+              </button>
+            </div>
+
             <form
               ref={formRef}
               onSubmit={sendEmail}
@@ -779,9 +938,15 @@ export default function App() {
               </button>
             </form>
             {contactStatus === "SUCCESS" && (
-              <p className="mt-4 text-green-500 font-semibold" role="alert">
-                Message sent successfully!
-              </p>
+              <>
+                <p className="mt-4 text-green-500 font-semibold" role="alert">
+                  Message sent successfully!
+                </p>
+                {/* 5. Confetti */}
+                <div className="flex justify-center relative" style={{ height: 130 }}>
+                  <canvas ref={confettiRef} width="400" height="120" style={{ pointerEvents: "none", background: "none", position: "absolute", top: 0 }} />
+                </div>
+              </>
             )}
             {contactStatus === "FAILED" && (
               <p className="mt-4 text-red-500 font-semibold" role="alert">
@@ -792,7 +957,11 @@ export default function App() {
         </main>
 
         <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
-          <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
+          <div>
+            © {new Date().getFullYear()} Meet Gojiya. All rights reserved.
+            {/* 8. Visit Counter */}
+            <span className="ml-6 italic">Visits: {visitCount}</span>
+          </div>
           <div className="flex space-x-6">
             <a
               href="https://github.com/meetgojiya98"
@@ -823,6 +992,7 @@ export default function App() {
           </div>
         </footer>
 
+        {/* 3. Auto-scroll to About after resume download */}
         <a
           href="https://drive.google.com/file/d/1d8C33RiAOEV_1q_QDPrWC0uk-i8J4kqO/view?usp=sharing"
           target="_blank"
@@ -833,6 +1003,9 @@ export default function App() {
           style={{ backgroundColor: colors.primary }}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
+          onClick={(e) => {
+            setTimeout(() => scrollTo("about"), 700); // auto-scroll
+          }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
