@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
 
 /* ===========================================================
-   SAFFRON DARK • MOBILE FIX + DYNAMIC BACKGROUND (tilt + scroll)
+   SAFFRON DARK • MOBILE TOP BAR + SOCIAL LINKS + DYNAMIC BG
    =========================================================== */
 
 const navItems = [
@@ -39,17 +39,14 @@ function usePrefersReducedMotion() {
   }, []);
   return reduced;
 }
-
 function useDeviceTilt() {
-  const [tilt, setTilt] = useState({ x: 0, y: 0 }); // range roughly [-1, 1]
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   useEffect(() => {
     const onOrient = (e) => {
-      // beta [-180,180] (front/back), gamma [-90,90] (left/right)
       const x = clamp((e.gamma || 0) / 45, -1, 1);
       const y = clamp(-(e.beta || 0) / 45, -1, 1);
       setTilt({ x, y });
     };
-    // iOS permission prompt (best-effort, silently ignore if denied)
     if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission === "function") {
       window.DeviceOrientationEvent.requestPermission().catch(() => {}).finally(() => {
         window.addEventListener("deviceorientation", onOrient);
@@ -64,12 +61,8 @@ function useDeviceTilt() {
 
 /* ---------- Shaders ---------- */
 function NebulaPlane({ colors, opacity = 0.6, parallax = { x: 0, y: 0 }, scrollRatio = 0 }) {
-  const baseHslA = useMemo(() => {
-    const c = new THREE.Color(colors.ramps[0]); const o = { h:0,s:0,l:0 }; c.getHSL(o); return o;
-  }, [colors]);
-  const baseHslB = useMemo(() => {
-    const c = new THREE.Color(colors.ramps[2]); const o = { h:0,s:0,l:0 }; c.getHSL(o); return o;
-  }, [colors]);
+  const baseHslA = useMemo(() => { const c = new THREE.Color(colors.ramps[0]); const o = { h:0,s:0,l:0 }; c.getHSL(o); return o; }, [colors]);
+  const baseHslB = useMemo(() => { const c = new THREE.Color(colors.ramps[2]); const o = { h:0,s:0,l:0 }; c.getHSL(o); return o; }, [colors]);
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -88,7 +81,6 @@ function NebulaPlane({ colors, opacity = 0.6, parallax = { x: 0, y: 0 }, scrollR
     uniforms.uB.value.setHSL(driftB < 0 ? driftB + 1 : driftB, baseHslB.s, baseHslB.l);
   });
 
-  // subtle parallax: move plane with tilt/scroll
   const px = parallax.x * 0.5;
   const py = parallax.y * 0.35 + (scrollRatio - 0.5) * 0.8;
 
@@ -107,7 +99,7 @@ function NebulaPlane({ colors, opacity = 0.6, parallax = { x: 0, y: 0 }, scrollR
           float fbm(vec2 x){ float v=0., a=0.5; mat2 m=mat2(1.6,1.2,-1.2,1.6);
             for(int i=0;i<5;i++){ v+=a*noise(x); x=m*x+0.1; a*=0.5; } return v; }
           void main(){
-            vec2 p=(vUv-0.5)* (3.0 + uScroll*0.6); // zoom with scroll
+            vec2 p=(vUv-0.5)* (3.0 + uScroll*0.6);
             float n=fbm(p + uTime*0.12);
             float g=smoothstep(0.3,1.0,n);
             vec3 col=mix(uA,uB,g);
@@ -137,7 +129,7 @@ function GlowBillboard({ color = "#ffffff", scale = 6, opacity = 0.2, position =
   );
 }
 
-/* ---------- 3D elements w/ tilt & scroll ---------- */
+/* ---------- 3D elements ---------- */
 function Cursor3D({ color, tilt = { x: 0, y: 0 } }) {
   const group = useRef(); const { viewport, mouse } = useThree();
   const pos = useRef([0, 0]);
@@ -146,11 +138,7 @@ function Cursor3D({ color, tilt = { x: 0, y: 0 } }) {
     const ty = mouse.y * viewport.height * 0.5 + tilt.y * viewport.height * 0.2;
     pos.current[0] += (tx - pos.current[0]) * 0.15;
     pos.current[1] += (ty - pos.current[1]) * 0.15;
-    if (group.current) {
-      group.current.position.x = pos.current[0];
-      group.current.position.y = pos.current[1];
-      group.current.rotation.x += 0.02; group.current.rotation.y += 0.025;
-    }
+    if (group.current) { group.current.position.x = pos.current[0]; group.current.position.y = pos.current[1]; group.current.rotation.x += 0.02; group.current.rotation.y += 0.025; }
   });
   return (
     <group ref={group}>
@@ -330,7 +318,6 @@ function Magnetic({ children, strength = 20, className, style }) {
   function onLeave() { const el = ref.current; if (!el) return; el.style.transform = "translate(0,0)"; }
   return (<div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} className={className} style={style}>{children}</div>);
 }
-
 function TiltCard({ children, className, max = 10, glow = "var(--color-primary)", onClick }) {
   const ref = useRef(null);
   function onMove(e) {
@@ -344,7 +331,6 @@ function TiltCard({ children, className, max = 10, glow = "var(--color-primary)"
   function onLeave() { const el = ref.current; if (!el) return; el.style.transform = "perspective(900px) rotateX(0) rotateY(0)"; el.style.boxShadow = "none"; }
   return (<div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} onClick={onClick} className={className}>{children}</div>);
 }
-
 function SkillRing({ label, level = 80, accent = "var(--color-primary)" }) {
   const pct = clamp(level, 0, 100);
   const angle = (pct / 100) * 360;
@@ -358,7 +344,6 @@ function SkillRing({ label, level = 80, accent = "var(--color-primary)" }) {
     </div>
   );
 }
-
 function ScrollIndicator({ onClick }) {
   return (
     <motion.button
@@ -375,7 +360,6 @@ function ScrollIndicator({ onClick }) {
     </motion.button>
   );
 }
-
 function SectionReveal({ id, colors, title, children }) {
   const ref = useRef(); const inView = useInView(ref);
   return (
@@ -409,40 +393,6 @@ function burstConfetti(x = window.innerWidth / 2, y = window.innerHeight / 2) {
     requestAnimationFrame(() => { span.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random() * 360}deg)`; span.style.opacity = "0"; });
   }
   setTimeout(() => container.remove(), 1200);
-}
-
-/* ---------- Mobile bottom nav (safe-area aware) ---------- */
-function MobileNav({ active, onJump, colors }) {
-  return (
-    <nav
-      className="fixed md:hidden left-1/2 -translate-x-1/2 z-40 w-[94%]"
-      style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
-    >
-      <div
-        className="flex justify-around items-center rounded-2xl px-3 py-2 border border-white/10 backdrop-blur-xl"
-        style={{ background: "rgba(0,0,0,0.45)", boxShadow: `0 10px 30px ${colors.primary}22` }}
-      >
-        {navItems.map(({ id, label }) => {
-          const is = active === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onJump(id)}
-              className="flex-1 py-2 mx-1 rounded-xl text-xs font-semibold"
-              style={{
-                background: is ? `linear-gradient(135deg, ${colors.ramps[0]}, ${colors.ramps[2]})` : "transparent",
-                color: is ? "#0b0b0b" : "#e5e7eb",
-                border: is ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.08)",
-              }}
-              aria-current={is ? "page" : undefined}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
 }
 
 /* ---------- App ---------- */
@@ -519,6 +469,7 @@ export default function App() {
         .glass-card { background: rgba(255 255 255 / 0.10); backdrop-filter: saturate(180%) blur(12px); transition: background .3s ease, box-shadow .3s ease, transform .3s ease; }
         .glass-card:hover { background: rgba(255 255 255 / 0.22); box-shadow: 0 0 28px var(--color-primary-light); transform: translateY(-4px); cursor: pointer; }
         .active-pill { position: absolute; bottom: -6px; left: 0; right: 0; margin: 0 auto; width: 24px; height: 3px; border-radius: 9999px; background: var(--color-primary); }
+        .no-scrollbar::-webkit-scrollbar{ display: none; } .no-scrollbar{ -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes auroraMove { 0% { transform: translateY(-5%) scale(1.05) rotate(0deg); } 100% { transform: translateY(5%) scale(1.05) rotate(6deg); } }
       `}</style>
 
@@ -526,31 +477,78 @@ export default function App() {
       <a href="#hero" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded">Skip to content</a>
 
       <div className="relative bg-black/70 dark:bg-gray-950 text-gray-100 min-h-screen transition-colors duration-700 font-sans" style={{ paddingBottom: "110px" }}>
-        {/* Dynamic background (time + scroll + tilt) */}
-        <Floating3DCanvas colors={colors} reduced={usePrefersReducedMotion()} tilt={tilt} scrollRatio={scrollProgress / 100} />
+        {/* Dynamic background */}
+        <Floating3DCanvas colors={colors} reduced={prefersReducedMotion} tilt={tilt} scrollRatio={scrollProgress / 100} />
         <AuroraLayer />
         <NoiseOverlay />
 
         {/* top progress */}
         <div className="fixed top-0 left-0 h-1 z-50 transition-all" style={{ width: `${scrollProgress}%`, background: rampCSS, opacity: 0.9 }} />
 
-        {/* DESKTOP HEADER ONLY (mobile hidden to avoid the “sticking at bottom” issue) */}
-        <nav className={`hidden md:block fixed top-0 w-full z-40 backdrop-blur-md bg-black/35 border-b border-white/10 ${scrolled ? "shadow-lg" : ""}`} aria-label="Primary Navigation">
-          <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-3">
-            <div onClick={() => scrollTo("hero")} className="text-2xl font-extrabold cursor-pointer select-none tracking-tight" style={{ background: rampCSS, WebkitBackgroundClip: "text", color: "transparent" }}>Meet Gojiya</div>
-            <ul className="flex space-x-8 font-medium text-lg relative" role="menubar">
+        {/* HEADER (now visible on mobile, with social links) */}
+        <nav className={`fixed top-0 w-full z-40 backdrop-blur-md bg-black/35 border-b border-white/10 ${scrolled ? "shadow-lg" : ""}`} aria-label="Primary Navigation" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center gap-3">
+            {/* Brand */}
+            <div onClick={() => scrollTo("hero")} className="text-xl md:text-2xl font-extrabold cursor-pointer select-none tracking-tight flex-shrink-0" style={{ background: rampCSS, WebkitBackgroundClip: "text", color: "transparent" }}>
+              Meet Gojiya
+            </div>
+
+            {/* Mobile pill nav (scrollable) */}
+            <div className="md:hidden flex-1 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 w-max">
+                {navItems.map(({ id, label }) => {
+                  const is = activeSection === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => scrollTo(id)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold border"
+                      style={{
+                        background: is ? rampCSS : "transparent",
+                        color: is ? "#0b0b0b" : "#e5e7eb",
+                        borderColor: is ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)",
+                      }}
+                      aria-current={is ? "page" : undefined}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Desktop nav */}
+            <ul className="hidden md:flex flex-1 justify-center space-x-8 font-medium text-lg relative" role="menubar">
               {navItems.map(({ label, id }) => (
                 <li key={id} onClick={() => scrollTo(id)} tabIndex={0} className={`relative pb-2 cursor-pointer transition hover:text-[var(--color-primary)] ${activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""}`} aria-current={activeSection === id ? "page" : undefined}>
                   {label}{activeSection === id && <span className="active-pill" />}
                 </li>
               ))}
             </ul>
-            <div className="w-8" aria-hidden />
+
+            {/* Mobile social links (only on mobile) */}
+            <div className="flex items-center gap-2 md:hidden">
+              <a href="https://github.com/meetgojiya98" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full text-black" title="GitHub" style={{ background: rampCSS }}>
+                {/* GitHub icon */}
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                  <path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.6-4.04-1.6-.55-1.38-1.33-1.75-1.33-1.75-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.31.77-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.23v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5z"/>
+                </svg>
+              </a>
+              <a href="https://www.linkedin.com/in/meet-gojiya/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full text-black" title="LinkedIn" style={{ background: rampCSS }}>
+                {/* LinkedIn icon */}
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433a2.073 2.073 0 110-4.146 2.073 2.073 0 010 4.146zM7.114 20.452H3.56V9h3.554v11.452z"/>
+                </svg>
+              </a>
+            </div>
+
+            {/* Spacer on desktop right */}
+            <div className="hidden md:block w-8" aria-hidden />
           </div>
         </nav>
 
         {/* MAIN */}
-        <main className="max-w-7xl mx-auto px-4 md:px-6 pt-24 md:pt-28 space-y-28 md:space-y-48">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 pt-[84px] md:pt-28 space-y-28 md:space-y-48">
           {/* HERO */}
           <section id="hero" className="min-h-[70vh] md:min-h-screen flex flex-col justify-center items-center text-center gap-4 md:gap-8 relative z-10">
             <motion.h1 initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1.2 }} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight" style={{ background: rampCSS, WebkitBackgroundClip: "text", color: "transparent" }}>Meet Gojiya</motion.h1>
@@ -590,7 +588,7 @@ export default function App() {
             </div>
           </SectionReveal>
 
-          {/* PROJECTS (saffron accents, minimal) */}
+          {/* PROJECTS */}
           <SectionReveal id="projects" colors={colors} title="Projects">
             <div className="max-w-3xl mx-auto mb-6 flex items-center gap-2 md:gap-3">
               <input value={projectQuery} onChange={(e)=>setProjectQuery(e.target.value)} placeholder="Filter projects by title, tag, or description…" className="flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg bg-white/10 border border-white/20 outline-none text-sm md:text-base" />
@@ -672,7 +670,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* FOOTER: fixed on desktop; normal flow on mobile to avoid overlaps */}
+        {/* FOOTER: fixed on desktop; normal flow on mobile (no bottom nav anymore) */}
         <footer className="w-full bg-black/40 border-t border-white/10 flex justify-between items-center px-4 md:px-6 py-2 text-[11px] sm:text-sm text-white/80 select-none z-30 backdrop-blur md:fixed md:bottom-0 md:left-0">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="hidden sm:flex space-x-4 md:space-x-6 items-center">
@@ -681,10 +679,7 @@ export default function App() {
           </div>
         </footer>
 
-        {/* MOBILE bottom nav */}
-        <MobileNav active={activeSection} onJump={scrollTo} colors={colors} />
-
-        {/* RESUME BUTTON (safe-area aware on mobile) */}
+        {/* RESUME BUTTON */}
         <a
           href="https://drive.google.com/file/d/17XX80PFS8ga66W_fNSaoY-iGfgna8qth/view?usp=sharing"
           target="_blank" rel="noopener noreferrer"
