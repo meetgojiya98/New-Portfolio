@@ -6,17 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import emailjs from "emailjs-com";
 
 /* ===========================================================
-   OUT-OF-THIS-WORLD • SAFFRON DARK • SINGLE FILE
-   - Default theme: SAFFRON (locked)
-   - Mode: DARK only (no light mode)
-   - Dynamic background follows theme ramp
-   - Mobile UI refined; bottom nav
-   - Project cards simplified (no stars/forks/issues, no badges/images)
+   SAFFRON DARK • MOBILE FIX + DYNAMIC BACKGROUND (tilt + scroll)
    =========================================================== */
 
-// ------------------------------
-// NAV + SAFFRON THEME (locked)
-// ------------------------------
 const navItems = [
   { label: "Home", id: "hero" },
   { label: "About Me", id: "about" },
@@ -25,23 +17,17 @@ const navItems = [
   { label: "Contact", id: "contact" },
 ];
 
-const baseThemes = {
-  saffron: {
-    primary: "#f59e0b",
-    primaryDark: "#d97706",
-    primaryLight: "#fbbf24",
-    particlesColor: "#fbbf24",
-    ramps: ["#d97706", "#f59e0b", "#fde68a"],
-  },
+const theme = {
+  primary: "#f59e0b",
+  primaryDark: "#d97706",
+  primaryLight: "#fbbf24",
+  particlesColor: "#fbbf24",
+  ramps: ["#d97706", "#f59e0b", "#fde68a"],
 };
 
-// Helpers
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-const numShort = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n));
 
-// ------------------------------
-// ACCESSIBILITY / KONAMI
-// ------------------------------
+/* ---------- Motion & Device tilt ---------- */
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -53,20 +39,31 @@ function usePrefersReducedMotion() {
   }, []);
   return reduced;
 }
-function useKonami(callback) {
+
+function useDeviceTilt() {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 }); // range roughly [-1, 1]
   useEffect(() => {
-    const seq = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-    let i = 0;
-    const onKey = (e) => { if (e.key === seq[i]) { i++; if (i === seq.length) { callback?.(); i = 0; } } else { i = 0; } };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [callback]);
+    const onOrient = (e) => {
+      // beta [-180,180] (front/back), gamma [-90,90] (left/right)
+      const x = clamp((e.gamma || 0) / 45, -1, 1);
+      const y = clamp(-(e.beta || 0) / 45, -1, 1);
+      setTilt({ x, y });
+    };
+    // iOS permission prompt (best-effort, silently ignore if denied)
+    if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission === "function") {
+      window.DeviceOrientationEvent.requestPermission().catch(() => {}).finally(() => {
+        window.addEventListener("deviceorientation", onOrient);
+      });
+    } else {
+      window.addEventListener("deviceorientation", onOrient);
+    }
+    return () => window.removeEventListener("deviceorientation", onOrient);
+  }, []);
+  return tilt;
 }
 
-// ------------------------------
-// SHADERS • Nebula Plane (FBM) with dynamic hue drift
-// ------------------------------
-function NebulaPlane({ colors, opacity = 0.6 }) {
+/* ---------- Shaders ---------- */
+function NebulaPlane({ colors, opacity = 0.6, parallax = { x: 0, y: 0 }, scrollRatio = 0 }) {
   const baseHslA = useMemo(() => {
     const c = new THREE.Color(colors.ramps[0]); const o = { h:0,s:0,l:0 }; c.getHSL(o); return o;
   }, [colors]);
@@ -78,10 +75,12 @@ function NebulaPlane({ colors, opacity = 0.6 }) {
     uTime: { value: 0 },
     uA: { value: new THREE.Color().setHSL(baseHslA.h, baseHslA.s, baseHslA.l) },
     uB: { value: new THREE.Color().setHSL(baseHslB.h, baseHslB.s, baseHslB.l) },
+    uScroll: { value: 0 },
   }), [baseHslA, baseHslB]);
 
   useFrame((_, dt) => {
     uniforms.uTime.value += dt * 0.12;
+    uniforms.uScroll.value = scrollRatio;
     const t = uniforms.uTime.value;
     const driftA = (baseHslA.h + 0.02 * Math.sin(t * 0.25)) % 1;
     const driftB = (baseHslB.h + 0.03 * Math.cos(t * 0.21)) % 1;
@@ -89,26 +88,30 @@ function NebulaPlane({ colors, opacity = 0.6 }) {
     uniforms.uB.value.setHSL(driftB < 0 ? driftB + 1 : driftB, baseHslB.s, baseHslB.l);
   });
 
+  // subtle parallax: move plane with tilt/scroll
+  const px = parallax.x * 0.5;
+  const py = parallax.y * 0.35 + (scrollRatio - 0.5) * 0.8;
+
   return (
-    <mesh position={[0, 0, -1.5]} scale={[16, 10, 1]}>
+    <mesh position={[px, py, -1.6]} scale={[16, 10, 1]}>
       <planeGeometry args={[1, 1, 128, 128]} />
       <shaderMaterial
         transparent depthWrite={false} blending={THREE.AdditiveBlending} uniforms={uniforms}
-        vertexShader={`
-          varying vec2 vUv;
-          void main(){ vUv=uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
-        `}
+        vertexShader={`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`}
         fragmentShader={`
-          varying vec2 vUv; uniform float uTime; uniform vec3 uA; uniform vec3 uB;
-          float hash(vec2 p){ return fract(1e4*sin(17.0*p.x + 0.1*p.y)* (0.1+abs(sin(p.y*13.0)))); }
-          float noise(in vec2 x){ vec2 i=floor(x); vec2 f=fract(x);
+          varying vec2 vUv; uniform float uTime; uniform vec3 uA; uniform vec3 uB; uniform float uScroll;
+          float hash(vec2 p){ return fract(1e4*sin(17.0*p.x + 0.1*p.y)*(0.1+abs(sin(p.y*13.0)))); }
+          float noise(vec2 x){ vec2 i=floor(x); vec2 f=fract(x);
             float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
-            vec2 u=f*f*(3.-2.*f); return mix(a,b,u.x)+ (c-a)*u.y*(1.-u.x)+ (d-b)*u.x*u.y; }
+            vec2 u=f*f*(3.-2.*f); return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y; }
           float fbm(vec2 x){ float v=0., a=0.5; mat2 m=mat2(1.6,1.2,-1.2,1.6);
             for(int i=0;i<5;i++){ v+=a*noise(x); x=m*x+0.1; a*=0.5; } return v; }
           void main(){
-            vec2 p=(vUv-0.5)*3.0; float n=fbm(p + uTime*0.12); float g=smoothstep(0.3,1.0,n);
-            vec3 col = mix(uA,uB,g); col += 0.15*vec3(1.)*smoothstep(0.8,1.0,n);
+            vec2 p=(vUv-0.5)* (3.0 + uScroll*0.6); // zoom with scroll
+            float n=fbm(p + uTime*0.12);
+            float g=smoothstep(0.3,1.0,n);
+            vec3 col=mix(uA,uB,g);
+            col += 0.15*vec3(1.)*smoothstep(0.8,1.0,n);
             gl_FragColor=vec4(col, g*${opacity.toFixed(2)});
           }
         `}
@@ -118,8 +121,7 @@ function NebulaPlane({ colors, opacity = 0.6 }) {
 }
 
 function GlowBillboard({ color = "#ffffff", scale = 6, opacity = 0.2, position = [0, 0, 0] }) {
-  const meshRef = useRef();
-  const { camera } = useThree();
+  const meshRef = useRef(); const { camera } = useThree();
   const uniforms = useMemo(() => ({ uColor: { value: new THREE.Color(color) }, uOpacity: { value: opacity } }), [color, opacity]);
   useFrame(() => { if (meshRef.current) meshRef.current.quaternion.copy(camera.quaternion); });
   return (
@@ -128,30 +130,26 @@ function GlowBillboard({ color = "#ffffff", scale = 6, opacity = 0.2, position =
       <shaderMaterial
         transparent depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} uniforms={uniforms}
         vertexShader={`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`}
-        fragmentShader={`varying vec2 vUv; uniform vec3 uColor; uniform float uOpacity; void main(){
-          vec2 p=vUv-0.5; float d=length(p)*2.0; float a=smoothstep(1.0,0.0,d); a=pow(a,1.7);
-          gl_FragColor=vec4(uColor,a*uOpacity);
-        }`}
+        fragmentShader={`varying vec2 vUv; uniform vec3 uColor; uniform float uOpacity;
+          void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=smoothstep(1.0,0.0,d); a=pow(a,1.7); gl_FragColor=vec4(uColor,a*uOpacity); }`}
       />
     </mesh>
   );
 }
 
-// ------------------------------
-// 3D ELEMENTS
-// ------------------------------
-function Cursor3D({ color }) {
-  const group = useRef();
-  const { viewport, mouse } = useThree();
+/* ---------- 3D elements w/ tilt & scroll ---------- */
+function Cursor3D({ color, tilt = { x: 0, y: 0 } }) {
+  const group = useRef(); const { viewport, mouse } = useThree();
   const pos = useRef([0, 0]);
   useFrame(() => {
-    pos.current[0] += (mouse.x * viewport.width * 0.5 - pos.current[0]) * 0.15;
-    pos.current[1] += (mouse.y * viewport.height * 0.5 - pos.current[1]) * 0.15;
+    const tx = mouse.x * viewport.width * 0.5 + tilt.x * viewport.width * 0.25;
+    const ty = mouse.y * viewport.height * 0.5 + tilt.y * viewport.height * 0.2;
+    pos.current[0] += (tx - pos.current[0]) * 0.15;
+    pos.current[1] += (ty - pos.current[1]) * 0.15;
     if (group.current) {
       group.current.position.x = pos.current[0];
       group.current.position.y = pos.current[1];
-      group.current.rotation.x += 0.02;
-      group.current.rotation.y += 0.025;
+      group.current.rotation.x += 0.02; group.current.rotation.y += 0.025;
     }
   });
   return (
@@ -167,21 +165,17 @@ function Cursor3D({ color }) {
   );
 }
 
-function InteractiveParticles({ color, count = 120 }) {
+function InteractiveParticles({ color, count = 120, tilt = { x: 0, y: 0 } }) {
   const { viewport, mouse } = useThree();
-  const PARTICLE_COUNT = count;
-  const PARTICLE_DISTANCE = 1.7;
-
-  const positions = useRef([]);
-  const velocities = useRef([]);
+  const PARTICLE_COUNT = count, PARTICLE_DISTANCE = 1.7;
+  const positions = useRef([]), velocities = useRef([]);
   if (positions.current.length === 0) {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       positions.current.push([(Math.random() - 0.5) * viewport.width * 1.25, (Math.random() - 0.5) * viewport.height * 1.25, (Math.random() - 0.5) * 5]);
       velocities.current.push([(Math.random() - 0.5) * 0.01, (Math.random() - 0.5) * 0.01, (Math.random() - 0.5) * 0.01]);
     }
   }
-  const pointsRef = useRef();
-  const linesRef = useRef();
+  const pointsRef = useRef(), linesRef = useRef();
 
   useFrame(() => {
     if (!pointsRef.current || !linesRef.current) return;
@@ -195,10 +189,11 @@ function InteractiveParticles({ color, count = 120 }) {
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
       if (p[2] < -3 || p[2] > 3) v[2] = -v[2];
 
-      const mx = mouse.x * viewport.width * 0.5, my = mouse.y * viewport.height * 0.5;
+      const mx = mouse.x * viewport.width * 0.5 + tilt.x * viewport.width * 0.25;
+      const my = mouse.y * viewport.height * 0.5 + tilt.y * viewport.height * 0.25;
       const dx = p[0] - mx, dy = p[1] - my, dist = Math.hypot(dx, dy);
-      if (dist < 1.5 && dist > 0.0001) {
-        const f = (1.5 - dist) * 0.05; v[0] += (dx / dist) * f; v[1] += (dy / dist) * f;
+      if (dist < 1.6 && dist > 0.0001) {
+        const f = (1.6 - dist) * 0.05; v[0] += (dx / dist) * f; v[1] += (dy / dist) * f;
       }
       v[0] = Math.min(Math.max(v[0], -0.04), 0.04);
       v[1] = Math.min(Math.max(v[1], -0.04), 0.04);
@@ -234,7 +229,6 @@ function InteractiveParticles({ color, count = 120 }) {
       </points>
       <lineSegments ref={linesRef}>
         <bufferGeometry>
-          {/* upper bound; we draw a subset each frame */}
           <bufferAttribute attach="attributes-position" count={PARTICLE_COUNT * PARTICLE_COUNT * 2} array={new Float32Array(PARTICLE_COUNT * PARTICLE_COUNT * 3 * 2)} itemSize={3} />
         </bufferGeometry>
         <lineBasicMaterial color={color} transparent opacity={0.28} depthWrite={false} />
@@ -243,7 +237,7 @@ function InteractiveParticles({ color, count = 120 }) {
   );
 }
 
-function Floating3DCanvas({ colors, reduced = false }) {
+function Floating3DCanvas({ colors, reduced = false, tilt = { x: 0, y: 0 }, scrollRatio = 0 }) {
   const { primary, primaryLight } = colors;
   return (
     <Canvas
@@ -255,21 +249,19 @@ function Floating3DCanvas({ colors, reduced = false }) {
       <directionalLight position={[5, 5, 5]} intensity={0.9} />
       <pointLight position={[-5, -5, 5]} intensity={0.6} />
       <Suspense fallback={null}>
-        <Stars radius={90} depth={45} count={reduced ? 700 : 1400} factor={4} saturation={0} fade speed={0.35} />
-        <NebulaPlane colors={colors} />
+        <Stars radius={90} depth={45} count={reduced ? 700 : 1400} factor={4} saturation={0} fade speed={0.35 + scrollRatio * 0.15} />
+        <NebulaPlane colors={colors} parallax={tilt} scrollRatio={scrollRatio} />
         <GlowBillboard color={primaryLight} scale={12} opacity={0.12} position={[0, 0, -1]} />
         <GlowBillboard color={primary} scale={7} opacity={0.18} position={[0.5, -0.3, -0.8]} />
-        <InteractiveParticles color={primaryLight} count={reduced ? 70 : 120} />
-        <Cursor3D color={primary} />
+        <InteractiveParticles color={primaryLight} count={reduced ? 70 : 120} tilt={tilt} />
+        <Cursor3D color={primary} tilt={tilt} />
       </Suspense>
-      <OrbitControls autoRotate={!reduced} autoRotateSpeed={reduced ? 0.06 : 0.12} enableZoom={false} enablePan={false} />
+      <OrbitControls autoRotate={!reduced} autoRotateSpeed={reduced ? 0.06 : 0.12 + scrollRatio * 0.2} enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
 
-// ------------------------------
-// VISUAL OVERLAYS (CSS)
-// ------------------------------
+/* ---------- Visual overlays ---------- */
 function AuroraLayer() {
   return (
     <div
@@ -298,9 +290,7 @@ function NoiseOverlay() {
   );
 }
 
-// ------------------------------
-// UTIL: IN-VIEW + CURSOR RING
-// ------------------------------
+/* ---------- Utilities ---------- */
 function useInView(ref, rootMargin = "-100px") {
   const [show, setShow] = useState(false);
   useEffect(() => {
@@ -327,9 +317,7 @@ function CursorRing() {
   return null;
 }
 
-// ------------------------------
-// UI PRIMITIVES
-// ------------------------------
+/* ---------- UI primitives ---------- */
 function Magnetic({ children, strength = 20, className, style }) {
   const ref = useRef(null);
   function onMove(e) {
@@ -389,8 +377,7 @@ function ScrollIndicator({ onClick }) {
 }
 
 function SectionReveal({ id, colors, title, children }) {
-  const ref = useRef();
-  const inView = useInView(ref);
+  const ref = useRef(); const inView = useInView(ref);
   return (
     <motion.section
       id={id}
@@ -405,9 +392,7 @@ function SectionReveal({ id, colors, title, children }) {
   );
 }
 
-// ------------------------------
-// EMAIL / CONFETTI
-// ------------------------------
+/* ---------- Email + confetti ---------- */
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
@@ -418,23 +403,21 @@ function burstConfetti(x = window.innerWidth / 2, y = window.innerHeight / 2) {
   for (let i = 0; i < pieces; i++) {
     const span = document.createElement("span");
     span.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-    span.style.position = "absolute"; span.style.left = `${x}px`; span.style.top = `${y}px`;
-    span.style.fontSize = `${Math.random() * 18 + 14}px`;
-    span.style.transition = `transform 800ms cubic-bezier(.2,.8,.2,1), opacity 900ms ease`;
+    span.style.position = "absolute"; span.style.left = `${x}px`; span.style.top = `${y}px`; span.style.fontSize = `${Math.random() * 18 + 14}px`; span.style.transition = `transform 800ms cubic-bezier(.2,.8,.2,1), opacity 900ms ease`;
     container.appendChild(span);
-    const angle = (i / pieces) * Math.PI * 2 + Math.random() * 0.4;
-    const radius = 120 + Math.random() * 160; const dx = Math.cos(angle) * radius; const dy = Math.sin(angle) * radius;
+    const angle = (i / pieces) * Math.PI * 2 + Math.random() * 0.4; const radius = 120 + Math.random() * 160; const dx = Math.cos(angle) * radius; const dy = Math.sin(angle) * radius;
     requestAnimationFrame(() => { span.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random() * 360}deg)`; span.style.opacity = "0"; });
   }
   setTimeout(() => container.remove(), 1200);
 }
 
-// ------------------------------
-// MOBILE NAV (bottom)
-// ------------------------------
+/* ---------- Mobile bottom nav (safe-area aware) ---------- */
 function MobileNav({ active, onJump, colors }) {
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] md:hidden">
+    <nav
+      className="fixed md:hidden left-1/2 -translate-x-1/2 z-40 w-[94%]"
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+    >
       <div
         className="flex justify-around items-center rounded-2xl px-3 py-2 border border-white/10 backdrop-blur-xl"
         style={{ background: "rgba(0,0,0,0.45)", boxShadow: `0 10px 30px ${colors.primary}22` }}
@@ -462,20 +445,18 @@ function MobileNav({ active, onJump, colors }) {
   );
 }
 
-// ------------------------------
-// MAIN APP (dark-only, saffron-only)
-// ------------------------------
+/* ---------- App ---------- */
 export default function App() {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const tilt = useDeviceTilt();
 
-  // Force dark mode once on mount
   useEffect(() => {
     const html = document.documentElement;
-    html.classList.add("dark");
+    html.classList.add("dark"); // force dark
     html.style.transition = "background-color 0.3s ease, color 0.3s ease";
   }, []);
 
-  const colors = baseThemes.saffron; // locked theme
+  const colors = theme; // locked saffron
   const rampCSS = `linear-gradient(135deg, ${colors.ramps[0]} 0%, ${colors.ramps[1]} 55%, ${colors.ramps[2]} 100%)`;
 
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -487,7 +468,6 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState(null);
   const formRef = useRef(null);
 
-  // Scroll + section tracking
   const scrollTo = useCallback((id) => {
     const el = document.getElementById(id); if (!el) return;
     const yOffset = -80; const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -507,9 +487,6 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Konami → confetti
-  useKonami(() => burstConfetti(window.innerWidth / 2, window.innerHeight / 2));
-
   const sendEmail = (e) => {
     e.preventDefault(); setContactStatus(null); setSendingEmail(true);
     emailjs
@@ -520,37 +497,10 @@ export default function App() {
 
   const projects = useMemo(
     () => [
-      {
-        title: "Stock Market Copilot",
-        description: "End-to-end React + FastAPI app that delivers stock data, news, and AI insights for smarter investment decisions.",
-        link: "https://github.com/meetgojiya98/Stock-Market-Copilot",
-        live: "https://stock-market-copilot.vercel.app/",
-        repo: "meetgojiya98/Stock-Market-Copilot",
-        tags: ["React", "FastAPI", "AI", "Finance"],
-      },
-      {
-        title: "Stock Sentiment Dashboard",
-        description: "Real-time dashboard for market sentiment, trending tickers, news, and Reddit feeds to track market mood.",
-        link: "https://github.com/meetgojiya98/Stock-Sentiment-Dashboard",
-        live: "https://meetgojiya98.github.io/stock-sentiment-frontend/",
-        repo: "meetgojiya98/Stock-Sentiment-Dashboard",
-        tags: ["React", "D3", "Reddit API", "Charts"],
-      },
-      {
-        title: "StockVision",
-        description: "Predicts future stock prices from real market data with interactive charts, favorites, and dark mode.",
-        link: "https://github.com/meetgojiya98/StockVision",
-        live: "https://stock-vision-five.vercel.app/",
-        repo: "meetgojiya98/StockVision",
-        tags: ["React", "ML", "Timeseries", "Charts"],
-      },
-      {
-        title: "MapleLoom",
-        description: "Private RAG interface powered by Ollama, Qdrant, Meilisearch — offline, source-anchored answers.",
-        link: "https://github.com/meetgojiya98/MapleLoom",
-        repo: "meetgojiya98/MapleLoom",
-        tags: ["RAG", "Ollama", "Qdrant", "Search"],
-      },
+      { title: "Stock Market Copilot", description: "End-to-end React + FastAPI app that delivers stock data, news, and AI insights for smarter investment decisions.", link: "https://github.com/meetgojiya98/Stock-Market-Copilot", live: "https://stock-market-copilot.vercel.app/", repo: "meetgojiya98/Stock-Market-Copilot", tags: ["React", "FastAPI", "AI", "Finance"] },
+      { title: "Stock Sentiment Dashboard", description: "Real-time dashboard for market sentiment, trending tickers, news, and Reddit feeds to track market mood.", link: "https://github.com/meetgojiya98/Stock-Sentiment-Dashboard", live: "https://meetgojiya98.github.io/stock-sentiment-frontend/", repo: "meetgojiya98/Stock-Sentiment-Dashboard", tags: ["React", "D3", "Reddit API", "Charts"] },
+      { title: "StockVision", description: "Predicts future stock prices from real market data with interactive charts, favorites, and dark mode.", link: "https://github.com/meetgojiya98/StockVision", live: "https://stock-vision-five.vercel.app/", repo: "meetgojiya98/StockVision", tags: ["React", "ML", "Timeseries", "Charts"] },
+      { title: "MapleLoom", description: "Private RAG interface powered by Ollama, Qdrant, Meilisearch — offline, source-anchored answers.", link: "https://github.com/meetgojiya98/MapleLoom", repo: "meetgojiya98/MapleLoom", tags: ["RAG", "Ollama", "Qdrant", "Search"] },
     ],
     []
   );
@@ -572,54 +522,30 @@ export default function App() {
         @keyframes auroraMove { 0% { transform: translateY(-5%) scale(1.05) rotate(0deg); } 100% { transform: translateY(5%) scale(1.05) rotate(6deg); } }
       `}</style>
 
-      {/* Custom DOM cursor ring */}
       <CursorRing />
-
       <a href="#hero" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-white focus:text-black focus:px-3 focus:py-2 focus:rounded">Skip to content</a>
 
-      <div className={`relative bg-black/70 dark:bg-gray-950 text-gray-100 min-h-screen transition-colors duration-700 font-sans`} style={{ paddingBottom: "110px" }}>
-        {/* Background */}
-        <Floating3DCanvas colors={colors} reduced={prefersReducedMotion} />
+      <div className="relative bg-black/70 dark:bg-gray-950 text-gray-100 min-h-screen transition-colors duration-700 font-sans" style={{ paddingBottom: "110px" }}>
+        {/* Dynamic background (time + scroll + tilt) */}
+        <Floating3DCanvas colors={colors} reduced={usePrefersReducedMotion()} tilt={tilt} scrollRatio={scrollProgress / 100} />
         <AuroraLayer />
         <NoiseOverlay />
 
-        {/* Scroll progress */}
+        {/* top progress */}
         <div className="fixed top-0 left-0 h-1 z-50 transition-all" style={{ width: `${scrollProgress}%`, background: rampCSS, opacity: 0.9 }} />
 
-        {/* NAVBAR */}
-        <nav className={`fixed top-0 w-full z-40 backdrop-blur-md bg-black/35 border-b border-white/10 transition-shadow ${scrolled ? "shadow-lg" : ""}`} role="navigation" aria-label="Primary Navigation">
-          <div className="max-w-7xl mx-auto flex justify-between items-center px-4 md:px-6 py-2 md:py-3">
-            <div
-              onClick={() => scrollTo("hero")}
-              className="text-xl md:text-2xl font-extrabold cursor-pointer select-none tracking-tight"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") scrollTo("hero"); }}
-              role="link"
-              aria-label="Go to Home"
-              style={{ background: rampCSS, WebkitBackgroundClip: "text", color: "transparent" }}
-            >
-              Meet Gojiya
-            </div>
-
-            <ul className="hidden md:flex space-x-6 md:space-x-8 font-medium text-sm md:text-lg relative" role="menubar">
+        {/* DESKTOP HEADER ONLY (mobile hidden to avoid the “sticking at bottom” issue) */}
+        <nav className={`hidden md:block fixed top-0 w-full z-40 backdrop-blur-md bg-black/35 border-b border-white/10 ${scrolled ? "shadow-lg" : ""}`} aria-label="Primary Navigation">
+          <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-3">
+            <div onClick={() => scrollTo("hero")} className="text-2xl font-extrabold cursor-pointer select-none tracking-tight" style={{ background: rampCSS, WebkitBackgroundClip: "text", color: "transparent" }}>Meet Gojiya</div>
+            <ul className="flex space-x-8 font-medium text-lg relative" role="menubar">
               {navItems.map(({ label, id }) => (
-                <li
-                  key={id}
-                  onClick={() => scrollTo(id)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") scrollTo(id); }}
-                  tabIndex={0}
-                  className={`relative pb-2 cursor-pointer transition hover:text-[var(--color-primary)] ${activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""}`}
-                  aria-current={activeSection === id ? "page" : undefined}
-                  role="menuitem"
-                >
-                  {label}
-                  {activeSection === id && <span className="active-pill" />}
+                <li key={id} onClick={() => scrollTo(id)} tabIndex={0} className={`relative pb-2 cursor-pointer transition hover:text-[var(--color-primary)] ${activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""}`} aria-current={activeSection === id ? "page" : undefined}>
+                  {label}{activeSection === id && <span className="active-pill" />}
                 </li>
               ))}
             </ul>
-
-            {/* Right side: nothing (no color cycler, no theme editor, no light-mode toggle) */}
-            <div className="w-6 md:w-8" aria-hidden />
+            <div className="w-8" aria-hidden />
           </div>
         </nav>
 
@@ -664,7 +590,7 @@ export default function App() {
             </div>
           </SectionReveal>
 
-          {/* PROJECTS (saffron accents, no badges/images, no stars/forks/issues) */}
+          {/* PROJECTS (saffron accents, minimal) */}
           <SectionReveal id="projects" colors={colors} title="Projects">
             <div className="max-w-3xl mx-auto mb-6 flex items-center gap-2 md:gap-3">
               <input value={projectQuery} onChange={(e)=>setProjectQuery(e.target.value)} placeholder="Filter projects by title, tag, or description…" className="flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg bg-white/10 border border-white/20 outline-none text-sm md:text-base" />
@@ -672,7 +598,8 @@ export default function App() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
               {filteredProjects.map((p) => {
-                const accent = colors.primary; const accent2 = colors.primaryLight; const accentRamp = `linear-gradient(135deg, ${accent}, ${accent2})`;
+                const accent = colors.primary, accent2 = colors.primaryLight;
+                const accentRamp = `linear-gradient(135deg, ${accent}, ${accent2})`;
                 return (
                   <TiltCard key={p.title} className="glass-card rounded-2xl overflow-hidden text-left group" glow={accent} onClick={() => setSelectedProject(p)}>
                     <div className="h-1 w-full" style={{ background: accentRamp }} />
@@ -724,13 +651,13 @@ export default function App() {
           </SectionReveal>
         </main>
 
-        {/* PROJECT MODAL (no images/badges) */}
+        {/* PROJECT MODAL */}
         <AnimatePresence>
           {selectedProject && (
             <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-6">
               <motion.div layout initial={{ scale:0.98, opacity:0 }} animate={{ scale:1, opacity:1 }} exit={{ scale:0.98, opacity:0 }} className="w-full max-w-3xl rounded-2xl overflow-hidden border border-white/10 bg-black/70">
                 <div className="p-5 md:p-6 space-y-3 md:space-y-4">
-                  <h3 className="text-xl md:text-2xl font-bold" style={{ background:rampCSS, WebkitBackgroundClip:'text', color:'transparent' }}>{selectedProject.title}</h3>
+                  <h3 className="text-xl md:text-2xl font-bold" style={{ background:`linear-gradient(135deg, ${colors.ramps[0]}, ${colors.ramps[2]})`, WebkitBackgroundClip:'text', color:'transparent' }}>{selectedProject.title}</h3>
                   <p className="text-white/90 text-sm md:text-base">{selectedProject.description}</p>
                   <div className="text-[11px] md:text-xs uppercase tracking-wide text-white/60">{(selectedProject.tags||[]).join(" • ")}</div>
                   <div className="flex gap-3 pt-2 flex-wrap">
@@ -745,25 +672,25 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* FOOTER */}
-        <footer className="fixed bottom-0 left-0 w-full bg-black/40 border-t border-white/10 flex justify-between items-center px-4 md:px-6 py-2 text-[11px] sm:text-sm text-white/80 select-none z-30 backdrop-blur">
+        {/* FOOTER: fixed on desktop; normal flow on mobile to avoid overlaps */}
+        <footer className="w-full bg-black/40 border-t border-white/10 flex justify-between items-center px-4 md:px-6 py-2 text-[11px] sm:text-sm text-white/80 select-none z-30 backdrop-blur md:fixed md:bottom-0 md:left-0">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="hidden sm:flex space-x-4 md:space-x-6 items-center">
-            <a href="https://github.com/meetgojiya98" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2">GitHub ↗</a>
-            <a href="https://www.linkedin.com/in/meet-gojiya/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-white transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2">LinkedIn ↗</a>
+            <a href="https://github.com/meetgojiya98" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">GitHub ↗</a>
+            <a href="https://www.linkedin.com/in/meet-gojiya/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">LinkedIn ↗</a>
           </div>
         </footer>
 
-        {/* MOBILE BOTTOM NAV */}
+        {/* MOBILE bottom nav */}
         <MobileNav active={activeSection} onJump={scrollTo} colors={colors} />
 
-        {/* RESUME FLOATING BUTTON */}
+        {/* RESUME BUTTON (safe-area aware on mobile) */}
         <a
           href="https://drive.google.com/file/d/17XX80PFS8ga66W_fNSaoY-iGfgna8qth/view?usp=sharing"
           target="_blank" rel="noopener noreferrer"
-          className="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-50 text-black px-4 md:px-5 py-2.5 md:py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50 text-sm md:text-base"
+          className="fixed right-4 md:right-6 z-50 text-black px-4 md:px-5 py-2.5 md:py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50 text-sm md:text-base"
           title="Download Resume" download
-          style={{ background: rampCSS }}
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 96px)", background: rampCSS }}
           onMouseOver={(e) => (e.currentTarget.style.filter = "brightness(0.95)")}
           onMouseOut={(e) => (e.currentTarget.style.filter = "none")}
         >
