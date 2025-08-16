@@ -409,6 +409,12 @@ export default function App() {
       link: "https://github.com/meetgojiya98/StockVision",
       live: "https://stock-vision-five.vercel.app/",
     },
+    {
+      title: "MapleLoom",
+      description:
+        "StockVision is a responsive web app that predicts future stock prices using real market data. It features interactive charts, multiple ticker support, dark mode, and lets users save favorite stocks for easy access.",
+      link: "https://github.com/meetgojiya98/MapleLoom",
+    }
   ];
 
   const skills = [
