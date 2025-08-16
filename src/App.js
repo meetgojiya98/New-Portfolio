@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { OrbitControls, Stars } from "@react-three/drei";
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from "framer-motion";
 import emailjs from "emailjs-com";
 
+// ------------------------------
+// NAV + THEME
+// ------------------------------
 const navItems = [
   { label: "Home", id: "hero" },
   { label: "About Me", id: "about" },
@@ -27,7 +30,7 @@ const themeColors = {
     primaryLight: "#60a5fa",
     threeColor1: "#2563eb",
     threeColor2: "#3b82f6",
-    particlesColor: "#3b82f6",
+    particlesColor: "#60a5fa",
   },
   violet: {
     primary: "#8b5cf6",
@@ -39,7 +42,24 @@ const themeColors = {
   },
 };
 
-// 3D Cursor
+// ------------------------------
+// ACCESSIBILITY / MOTION PREFS
+// ------------------------------
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => setReduced(media.matches);
+    onChange();
+    media.addEventListener?.("change", onChange);
+    return () => media.removeEventListener?.("change", onChange);
+  }, []);
+  return reduced;
+}
+
+// ------------------------------
+// 3D ELEMENTS
+// ------------------------------
 function Cursor3D({ color }) {
   const meshRef = useRef();
   const { viewport, mouse } = useThree();
@@ -65,13 +85,12 @@ function Cursor3D({ color }) {
         metalness={0.95}
         roughness={0.1}
         emissive={color}
-        emissiveIntensity={0.7}
+        emissiveIntensity={0.8}
       />
     </mesh>
   );
 }
 
-// Interactive Particles
 function InteractiveParticles({ color }) {
   const { viewport, mouse } = useThree();
 
@@ -99,6 +118,7 @@ function InteractiveParticles({ color }) {
   const linesRef = useRef();
 
   useFrame(() => {
+    if (!pointsRef.current || !linesRef.current) return;
     const ptsPositions = pointsRef.current.geometry.attributes.position.array;
     const linesPositions = linesRef.current.geometry.attributes.position.array;
 
@@ -106,9 +126,7 @@ function InteractiveParticles({ color }) {
       let p = positions.current[i];
       let v = velocities.current[i];
 
-      for (let axis = 0; axis < 3; axis++) {
-        p[axis] += v[axis];
-      }
+      for (let axis = 0; axis < 3; axis++) p[axis] += v[axis];
 
       if (p[0] < -viewport.width / 2 - 1 || p[0] > viewport.width / 2 + 1) v[0] = -v[0];
       if (p[1] < -viewport.height / 2 - 1 || p[1] > viewport.height / 2 + 1) v[1] = -v[1];
@@ -119,7 +137,7 @@ function InteractiveParticles({ color }) {
       const dx = p[0] - mx;
       const dy = p[1] - my;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 1.5) {
+      if (dist < 1.5 && dist > 0.0001) {
         const force = (1.5 - dist) * 0.05;
         v[0] += (dx / dist) * force;
         v[1] += (dy / dist) * force;
@@ -187,7 +205,7 @@ function InteractiveParticles({ color }) {
             itemSize={3}
           />
         </bufferGeometry>
-        <lineBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} />
+        <lineBasicMaterial color={color} transparent opacity={0.35} depthWrite={false} />
       </lineSegments>
     </>
   );
@@ -195,31 +213,124 @@ function InteractiveParticles({ color }) {
 
 function Floating3DCanvas({ theme }) {
   const colors = themeColors[theme] || themeColors.saffron;
-
   return (
     <Canvas
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        pointerEvents: "auto",
-        zIndex: 1,
-        opacity: 0.8,
-      }}
+      style={{ position: "fixed", inset: 0, pointerEvents: "auto", zIndex: 1, opacity: 0.85 }}
       camera={{ position: [0, 0, 12], fov: 65 }}
-      gl={{ antialias: true, toneMappingExposure: 1.5 }}
+      gl={{ antialias: true, toneMappingExposure: 1.4 }}
     >
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 5, 5]} intensity={0.8} />
-      <pointLight position={[-5, -5, 5]} intensity={0.5} />
+      <ambientLight intensity={0.35} />
+      <directionalLight position={[5, 5, 5]} intensity={0.9} />
+      <pointLight position={[-5, -5, 5]} intensity={0.6} />
       <Suspense fallback={null}>
+        {/* Soft starfield behind particles */}
+        <Stars radius={80} depth={40} count={1200} factor={4} saturation={0} fade speed={0.5} />
         <InteractiveParticles color={colors.particlesColor} />
         <Cursor3D color={colors.primary} />
       </Suspense>
-      <OrbitControls autoRotate autoRotateSpeed={0.1} enableZoom={false} enablePan={false} />
+      <OrbitControls autoRotate autoRotateSpeed={0.12} enableZoom={false} enablePan={false} />
     </Canvas>
+  );
+}
+
+// ------------------------------
+// VISUAL OVERLAYS (CSS-ONLY)
+// ------------------------------
+function AuroraLayer() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[2] mix-blend-screen opacity-70"
+      style={{
+        background:
+          "radial-gradient(60% 40% at 20% 10%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0) 60%), conic-gradient(from 180deg at 30% 50%, rgba(255,255,255,0.05), rgba(0,0,0,0) 50%)",
+        maskImage: "radial-gradient(90% 60% at 50% 50%, black 40%, transparent 80%)",
+        filter: "blur(40px)",
+        animation: "auroraMove 14s ease-in-out infinite alternate",
+      }}
+    />
+  );
+}
+
+function NoiseOverlay() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[3] opacity-[0.08]"
+      style={{
+        backgroundImage:
+          "repeating-radial-gradient(circle at 0 0, rgba(0,0,0,0.4) 0, rgba(0,0,0,0.4) 1px, transparent 1px, transparent 4px)",
+        mixBlendMode: "overlay",
+      }}
+    />
+  );
+}
+
+// ------------------------------
+// UTIL: SCROLL/IN-VIEW
+// ------------------------------
+function useInView(ref, rootMargin = "-100px") {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && setShow(true),
+      { rootMargin }
+    );
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [ref, rootMargin]);
+  return show;
+}
+
+// ------------------------------
+// UI PRIMITIVES
+// ------------------------------
+function Magnetic({ children, strength = 20, className, style }) {
+  const ref = useRef(null);
+  function onMove(e) {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const relX = e.clientX - rect.left - rect.width / 2;
+    const relY = e.clientY - rect.top - rect.height / 2;
+    el.style.transform = `translate(${(relX / rect.width) * strength}px, ${(relY / rect.height) * strength}px)`;
+  }
+  function onLeave() {
+    const el = ref.current;
+    if (!el) return;
+    el.style.transform = "translate(0,0)";
+  }
+  return (
+    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
+function TiltCard({ children, className, max = 10, glow = "var(--color-primary)" }) {
+  const ref = useRef(null);
+  function onMove(e) {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const rx = (py - 0.5) * -2 * max;
+    const ry = (px - 0.5) * 2 * max;
+    el.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    el.style.boxShadow = `${-ry}px ${rx}px 40px 0px ${glow}40`;
+  }
+  function onLeave() {
+    const el = ref.current;
+    if (!el) return;
+    el.style.transform = "perspective(800px) rotateX(0) rotateY(0)";
+    el.style.boxShadow = "none";
+  }
+  return (
+    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} className={className}>
+      {children}
+    </div>
   );
 }
 
@@ -230,23 +341,12 @@ function ScrollIndicator({ onClick }) {
       initial={{ opacity: 0, y: 0 }}
       animate={{ opacity: 1, y: [0, 15, 0] }}
       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-12 left-1/2 transform -translate-x-1/2 focus:outline-none"
+      className="absolute bottom-12 left-1/2 -translate-x-1/2 focus:outline-none"
       aria-label="Scroll down indicator"
       title="Scroll down"
-      style={{
-        background: "transparent",
-        border: "none",
-        cursor: "pointer",
-        padding: 0,
-      }}
+      style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
     >
-      <svg
-        className="w-8 h-8 text-gray-500 dark:text-gray-300"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
+      <svg className="w-8 h-8 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
       </svg>
     </motion.button>
@@ -254,32 +354,17 @@ function ScrollIndicator({ onClick }) {
 }
 
 function SectionReveal({ id, colors, title, children }) {
-  const controls = useAnimation();
   const ref = useRef();
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!ref.current) return;
-      const top = ref.current.getBoundingClientRect().top;
-      const windowHeight = window.innerHeight;
-      if (top < windowHeight - 100) {
-        controls.start({ opacity: 1, y: 0, transition: { duration: 0.8 } });
-      }
-    };
-    window.addEventListener("scroll", onScroll);
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [controls]);
-
+  const inView = useInView(ref);
   return (
     <motion.section
       id={id}
       ref={ref}
       initial={{ opacity: 0, y: 40 }}
-      animate={controls}
-      className="max-w-4xl mx-auto px-4 space-y-8 text-center relative z-10"
+      animate={inView ? { opacity: 1, y: 0, transition: { duration: 0.8 } } : undefined}
+      className="max-w-5xl mx-auto px-4 space-y-8 text-center relative z-10"
     >
-      <motion.h2 className="text-4xl font-bold" style={{ color: colors.primary }}>
+      <motion.h2 className="text-4xl md:text-5xl font-extrabold tracking-tight" style={{ color: colors.primary }}>
         {title}
       </motion.h2>
       <div className="text-lg max-w-3xl mx-auto leading-relaxed text-justify">{children}</div>
@@ -287,12 +372,53 @@ function SectionReveal({ id, colors, title, children }) {
   );
 }
 
+// ------------------------------
+// EMAIL / CONFETTI
+// ------------------------------
 const EMAILJS_SERVICE_ID = "service_i6dqi68";
 const EMAILJS_TEMPLATE_ID = "template_mrty8sn";
 const EMAILJS_USER_ID = "bqXMM_OmpPWcc1AMi";
 
+function burstConfetti(x = window.innerWidth / 2, y = window.innerHeight / 2) {
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = 0;
+  container.style.top = 0;
+  container.style.width = "100vw";
+  container.style.height = "100vh";
+  container.style.pointerEvents = "none";
+  container.style.zIndex = 60;
+  document.body.appendChild(container);
+
+  const EMOJIS = ["✨", "🌟", "💫", "🪄", "🔥", "🧡", "🎉", "🌈"]; 
+  const pieces = 36;
+  for (let i = 0; i < pieces; i++) {
+    const span = document.createElement("span");
+    span.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+    span.style.position = "absolute";
+    span.style.left = `${x}px`;
+    span.style.top = `${y}px`;
+    span.style.fontSize = `${Math.random() * 18 + 14}px`;
+    span.style.transition = `transform 800ms cubic-bezier(.2,.8,.2,1), opacity 900ms ease`;
+    container.appendChild(span);
+    const angle = (i / pieces) * Math.PI * 2 + Math.random() * 0.4;
+    const radius = 120 + Math.random() * 120;
+    const dx = Math.cos(angle) * radius;
+    const dy = Math.sin(angle) * radius;
+    requestAnimationFrame(() => {
+      span.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random() * 360}deg)`;
+      span.style.opacity = "0";
+    });
+  }
+  setTimeout(() => container.remove(), 1200);
+}
+
+// ------------------------------
+// MAIN APP
+// ------------------------------
 export default function App() {
   const validThemes = ["saffron", "blue", "violet"];
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -310,27 +436,22 @@ export default function App() {
   const [contactStatus, setContactStatus] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const formRef = useRef(null);
 
   // Persist theme
-  useEffect(() => {
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+  useEffect(() => localStorage.setItem("theme", theme), [theme]);
 
   // Dark mode toggle with smooth transition
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode);
     const html = document.documentElement;
-    if (darkMode) {
-      html.classList.add("dark");
-      html.style.transition = "background-color 0.3s ease, color 0.3s ease";
-    } else {
-      html.classList.remove("dark");
-      html.style.transition = "background-color 0.3s ease, color 0.3s ease";
-    }
+    if (darkMode) html.classList.add("dark");
+    else html.classList.remove("dark");
+    html.style.transition = "background-color 0.3s ease, color 0.3s ease";
   }, [darkMode]);
 
-  // Scroll listener for scroll progress, shadow, and active section tracking
+  // Scroll + active section tracking
   useEffect(() => {
     const sections = navItems.map(({ id }) => document.getElementById(id));
     const onScroll = () => {
@@ -338,7 +459,6 @@ export default function App() {
       const docHeight = document.body.scrollHeight - window.innerHeight;
       setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
       setScrolled(scrollTop > 30);
-
       let current = "hero";
       sections.forEach((section) => {
         if (section) {
@@ -349,16 +469,39 @@ export default function App() {
       setActiveSection(current);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Google Analytics pageview tracking on section change
+  // GA pageview on section change
   useEffect(() => {
     if (typeof window.gtag === "function") {
-      window.gtag("event", "page_view", {
-        page_path: `/#${activeSection}`,
-      });
+      window.gtag("event", "page_view", { page_path: `/#${activeSection}` });
     }
+  }, [activeSection]);
+
+  // Keyboard: Cmd/Ctrl+K for palette, PageUp/Down to navigate sections
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((s) => !s);
+      }
+      if (e.key === "PageDown") {
+        e.preventDefault();
+        const idx = navItems.findIndex((n) => n.id === activeSection);
+        const next = navItems[Math.min(navItems.length - 1, idx + 1)].id;
+        scrollTo(next);
+      }
+      if (e.key === "PageUp") {
+        e.preventDefault();
+        const idx = navItems.findIndex((n) => n.id === activeSection);
+        const prev = navItems[Math.max(0, idx - 1)].id;
+        scrollTo(prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [activeSection]);
 
   const scrollTo = (id) => {
@@ -368,6 +511,7 @@ export default function App() {
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
     setMenuOpen(false);
+    setPaletteOpen(false);
   };
 
   const sendEmail = (e) => {
@@ -380,6 +524,7 @@ export default function App() {
         setContactStatus("SUCCESS");
         setSendingEmail(false);
         formRef.current.reset();
+        burstConfetti(window.innerWidth - 120, window.innerHeight - 120);
       })
       .catch(() => {
         setContactStatus("FAILED");
@@ -387,7 +532,7 @@ export default function App() {
       });
   };
 
-  const projects = [
+  const projects = useMemo(() => [
     {
       title: "Stock Market Copilot",
       description:
@@ -398,24 +543,24 @@ export default function App() {
     {
       title: "Stock Sentiment Dashboard",
       description:
-        "The app provides a real-time dashboard displaying stock market sentiment, trending stocks, latest news, and Reddit posts to help users track market mood and insights.",
+        "Real-time dashboard for market sentiment, trending tickers, news, and Reddit feeds to track market mood.",
       link: "https://github.com/meetgojiya98/Stock-Sentiment-Dashboard",
       live: "https://meetgojiya98.github.io/stock-sentiment-frontend/",
     },
     {
       title: "StockVision",
       description:
-        "StockVision is a responsive web app that predicts future stock prices using real market data. It features interactive charts, multiple ticker support, dark mode, and lets users save favorite stocks for easy access.",
+        "Responsive app that predicts future stock prices from real market data with interactive charts and favorites.",
       link: "https://github.com/meetgojiya98/StockVision",
       live: "https://stock-vision-five.vercel.app/",
     },
     {
       title: "MapleLoom",
       description:
-        "A precise, private RAG interface powered by Ollama, Qdrant, and Meilisearch. Zero third-party calls (fully offline), source-anchored answers, and a minimal-latency UI.",
+        "Precise, private RAG interface powered by Ollama, Qdrant, and Meilisearch. Offline. Source-anchored answers.",
       link: "https://github.com/meetgojiya98/MapleLoom",
-    }
-  ];
+    },
+  ], []);
 
   const skills = [
     "JavaScript (ES6+)",
@@ -435,22 +580,12 @@ export default function App() {
     "Selenium",
   ];
 
-  const [currentProject, setCurrentProject] = useState(0);
-  const projectTimeout = useRef();
-
-  useEffect(() => {
-    projectTimeout.current = setTimeout(() => {
-      setCurrentProject((prev) => (prev + 1) % projects.length);
-    }, 6000);
-    return () => clearTimeout(projectTimeout.current);
-  }, [currentProject]);
+  const colors = themeColors[theme] || themeColors.saffron;
 
   const cycleTheme = () => {
-    const currentIndex = validThemes.indexOf(theme);
-    setTheme(validThemes[(currentIndex + 1) % validThemes.length]);
+    const idx = ["saffron", "blue", "violet"].indexOf(theme);
+    setTheme(["saffron", "blue", "violet"][(idx + 1) % 3]);
   };
-
-  const colors = themeColors[theme] || themeColors.saffron;
 
   return (
     <>
@@ -460,368 +595,225 @@ export default function App() {
           --color-primary-dark: ${colors.primaryDark};
           --color-primary-light: ${colors.primaryLight};
         }
-        .glass-card {
-          background: rgba(255 255 255 / 0.15);
-          backdrop-filter: saturate(180%) blur(10px);
-          transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-        }
-        .glass-card:hover {
-          background: rgba(255 255 255 / 0.3);
-          box-shadow: 0 0 20px var(--color-primary-light);
-          transform: translateY(-5px);
-          cursor: pointer;
-        }
-        /* Focus outlines for accessibility */
-        button:focus,
-        a:focus,
-        input:focus,
-        textarea:focus,
-        li:focus {
-          outline: 3px solid var(--color-primary);
-          outline-offset: 2px;
-        }
-        /* Animate theme cycling button */
-        .theme-cycle-btn:active {
-          transform: scale(0.9);
-          transition: transform 0.15s ease;
-        }
+        html { scroll-behavior: smooth; }
+        .glass-card { background: rgba(255 255 255 / 0.12); backdrop-filter: saturate(180%) blur(10px); transition: background .3s ease, box-shadow .3s ease, transform .3s ease; }
+        .glass-card:hover { background: rgba(255 255 255 / 0.25); box-shadow: 0 0 24px var(--color-primary-light); transform: translateY(-4px); cursor: pointer; }
+        button:focus, a:focus, input:focus, textarea:focus, li:focus { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+        .theme-cycle-btn:active { transform: scale(0.9); transition: transform .15s ease; }
+        .active-pill { position: absolute; bottom: -6px; left: 0; right: 0; margin: 0 auto; width: 24px; height: 3px; border-radius: 9999px; background: var(--color-primary); }
+        @keyframes auroraMove { 0% { transform: translateY(-5%) scale(1.05) rotate(0deg); } 100% { transform: translateY(5%) scale(1.05) rotate(6deg); } }
+        .marquee { display: flex; gap: 1rem; will-change: transform; animation: scrollX 28s linear infinite; }
+        @keyframes scrollX { from { transform: translateX(0); } to { transform: translateX(-50%); } }
       `}</style>
 
-      <div
-        className={`relative bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`}
-        style={{ paddingBottom: "90px" }}
-      >
+      <div className={`relative bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-700 font-sans`} style={{ paddingBottom: "90px" }}>
+        {/* 3D background + visual layers */}
         <Floating3DCanvas theme={theme} />
+        <AuroraLayer />
+        <NoiseOverlay />
 
-        <div
-          className="fixed top-0 left-0 h-1 z-50 transition-all"
-          style={{ width: `${scrollProgress}%`, backgroundColor: colors.primary }}
-        />
+        {/* Scroll progress */}
+        <div className="fixed top-0 left-0 h-1 z-50 transition-all" style={{ width: `${scrollProgress}%`, background: `linear-gradient(90deg, ${colors.primary}, ${colors.primaryLight})` }} />
 
-        <nav
-          className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-shadow ${
-            scrolled ? "shadow-lg" : ""
-          }`}
-          role="navigation"
-          aria-label="Primary Navigation"
-        >
+        {/* NAVBAR */}
+        <nav className={`fixed top-0 w-full z-40 backdrop-blur-md bg-white/70 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800 transition-shadow ${scrolled ? "shadow-lg" : ""}`} role="navigation" aria-label="Primary Navigation">
           <div className="container mx-auto flex justify-between items-center px-6 py-3">
             <div
               onClick={() => scrollTo("hero")}
-              className="text-2xl font-bold cursor-pointer select-none"
+              className="text-2xl font-extrabold cursor-pointer select-none tracking-tight"
               tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") scrollTo("hero");
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") scrollTo("hero"); }}
               role="link"
               aria-label="Go to Home"
             >
               Meet Gojiya
             </div>
-            <ul className="hidden md:flex space-x-10 font-medium text-lg" role="menubar">
+
+            <ul className="hidden md:flex space-x-8 font-medium text-lg relative" role="menubar">
               {navItems.map(({ label, id }) => (
                 <li
                   key={id}
                   onClick={() => scrollTo(id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") scrollTo(id);
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") scrollTo(id); }}
                   tabIndex={0}
-                  className={`cursor-pointer hover:text-[var(--color-primary)] transition ${
-                    activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""
-                  }`}
+                  className={`relative pb-2 cursor-pointer transition hover:text-[var(--color-primary)] ${activeSection === id ? "text-[var(--color-primary)] font-semibold" : ""}`}
                   aria-current={activeSection === id ? "page" : undefined}
                   role="menuitem"
                 >
                   {label}
+                  {activeSection === id && <span className="active-pill" />}
                 </li>
               ))}
             </ul>
-            <div className="flex items-center space-x-4">
-              <button
-                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full text-white transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-                style={{ backgroundColor: colors.primary }}
-                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {darkMode ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  >
-                    <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
-                    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    stroke="none"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
-                  </svg>
-                )}
-              </button>
-              <button
-                aria-label="Cycle Color Theme"
-                onClick={cycleTheme}
-                className="p-2 rounded-full bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition theme-cycle-btn focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-                title="Cycle Color Theme"
-              >
-                🎨
-              </button>
+
+            <div className="flex items-center space-x-3">
+              <Magnetic>
+                <button
+                  aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2 rounded-full text-white transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                  style={{ backgroundColor: colors.primary }}
+                  title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                  {darkMode ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                      <path d="M12 3v1m0 16v1m8.66-11.66l-.707.707M5.05 18.95l-.707.707m15.192 2.121l-.707-.707M5.05 5.05l-.707-.707M21 12h-1M4 12H3" />
+                      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={2} />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" stroke="none" aria-hidden="true">
+                      <path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 1 0-18z" />
+                    </svg>
+                  )}
+                </button>
+              </Magnetic>
+              <Magnetic>
+                <button
+                  aria-label="Cycle Color Theme"
+                  onClick={cycleTheme}
+                  className="p-2 rounded-full bg-gray-300 dark:bg-gray-800 hover:bg-gray-400 dark:hover:bg-gray-700 transition theme-cycle-btn focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                  title="Cycle Color Theme"
+                >
+                  🎨
+                </button>
+              </Magnetic>
+              <Magnetic>
+                <button
+                  onClick={() => setPaletteOpen(true)}
+                  className="hidden md:inline-flex px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 hover:border-[var(--color-primary)]/80 hover:text-[var(--color-primary)] transition"
+                  title="Open command palette (⌘/Ctrl + K)"
+                >
+                  ⌘K
+                </button>
+              </Magnetic>
             </div>
           </div>
         </nav>
 
-        <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl scroll-smooth">
-          {/* Hero */}
-          <section
-            id="hero"
-            className="min-h-screen flex flex-col justify-center items-center text-center space-y-8 relative z-10"
-          >
-            <motion.h1
-              initial={{ y: -60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 1.2 }}
-              className="text-6xl font-extrabold tracking-tight"
-              style={{ color: colors.primary }}
-            >
+        {/* COMMAND PALETTE */}
+        <AnimatePresence>
+          {paletteOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-28">
+              <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} className="w-[90%] max-w-xl rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 shadow-2xl overflow-hidden">
+                <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+                  <input autoFocus onKeyDown={(e) => { if (e.key === "Escape") setPaletteOpen(false); }} placeholder="Type to jump: home, about, skills, projects, contact…" className="w-full bg-transparent outline-none text-lg px-2 py-1 placeholder-gray-500" />
+                </div>
+                <ul className="max-h-64 overflow-y-auto">
+                  {navItems.map((n) => (
+                    <li key={n.id} className="px-4 py-3 hover:bg-[var(--color-primary)]/10 cursor-pointer" onClick={() => scrollTo(n.id)}>
+                      <div className="font-semibold">{n.label}</div>
+                      <div className="text-sm text-gray-500">#{n.id}</div>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* MAIN */}
+        <main className="container mx-auto px-6 pt-24 space-y-48 max-w-6xl">
+          {/* HERO */}
+          <section id="hero" className="min-h-screen flex flex-col justify-center items-center text-center space-y-8 relative z-10">
+            <motion.h1 initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1.2 }} className="text-6xl md:text-7xl font-extrabold tracking-tight" style={{ color: colors.primary }}>
               Meet Gojiya
             </motion.h1>
-            <motion.p
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 1.5 }}
-              className="max-w-xl text-lg md:text-xl"
-            >
-              Full-stack Developer & AI Enthusiast — Building beautiful, scalable web
-              experiences.
+            <motion.p initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1.5 }} className="max-w-xl text-lg md:text-xl">
+              Full-stack Developer & AI Enthusiast — building beautiful, scalable web experiences.
             </motion.p>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => scrollTo("projects")}
-              className="px-8 py-3 text-white rounded-lg shadow-lg transition z-10 focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
-              style={{ backgroundColor: colors.primary }}
-            >
-              See My Work
-            </motion.button>
+            <Magnetic>
+              <motion.button whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.96 }} onClick={() => scrollTo("projects")} className="px-8 py-3 text-white rounded-xl shadow-lg transition z-10 focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50" style={{ backgroundColor: colors.primary }}>
+                See My Work
+              </motion.button>
+            </Magnetic>
             <ScrollIndicator onClick={() => scrollTo("about")} />
           </section>
 
-          {/* About Me */}
+          {/* ABOUT */}
           <SectionReveal id="about" colors={colors} title="About Me">
             <p>
-              Meet Gojiya is a Solution Analyst on the Product Engineering and Development team,
-              within the Engineering, AI, and Data offering at Deloitte Canada. Meet has the
-              ability to link business with technology to extract insights from complex data and
-              build data-driven solutions.
+              Meet Gojiya is a Solution Analyst on the Product Engineering and Development team within the Engineering, AI, and Data offering at Deloitte Canada. He links business with technology to extract insights from complex data and build data-driven solutions.
             </p>
             <br />
             <p>
-              Meet is a graduate of the University of New Brunswick, where he earned a Master of
-              Computer Science degree. He also holds a Bachelor’s degree in Computer Engineering
-              from Gujarat Technological University. Meet is driven by technology innovation,
-              advanced analytics, adaptability, collaboration, and creativity, ultimately
-              furthering his career as well as those around him. He possesses a strong
-              entrepreneurial spirit, which fuels his passion for creating impactful solutions
-              and driving positive change within the industry and the world.
+              Meet holds a Master of Computer Science from the University of New Brunswick and a Bachelor’s in Computer Engineering from Gujarat Technological University. He thrives on innovation, analytics, adaptability, and collaboration, pairing an entrepreneurial spirit with a drive to create positive, real-world impact.
             </p>
             <br />
             <p>
-              An avid learner and active listener, Meet thrives on absorbing knowledge from as
-              many people as possible, recognizing that every interaction is an opportunity to
-              gain new insights and perspectives. His extremely curious personality propels him
-              to explore new ideas, question existing paradigms, and continuously seek out
-              opportunities for learning and growth.
+              A curious, active listener, he treats every interaction as a chance to learn—exploring new ideas, questioning assumptions, and continuously growing.
             </p>
           </SectionReveal>
 
-          {/* Skills */}
+          {/* SKILLS (MARQUEE + CHIPS) */}
           <SectionReveal id="skills" colors={colors} title="Skills">
-            <div className="flex flex-wrap justify-center gap-4">
-              {skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="glass-card px-5 py-2 rounded-full text-white font-semibold shadow-lg cursor-default select-none transition"
-                  style={{ backgroundColor: colors.primary }}
-                >
-                  {skill}
-                </span>
-              ))}
+            <div className="overflow-hidden py-2">
+              <div className="marquee">
+                {[...skills, ...skills].map((skill, i) => (
+                  <span key={i} className="px-5 py-2 rounded-full text-white font-semibold shadow-lg select-none" style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.primaryLight})` }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
           </SectionReveal>
 
-          {/* Projects */}
+          {/* PROJECTS (TILT CARDS GRID) */}
           <SectionReveal id="projects" colors={colors} title="Projects">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={projects[currentProject].title}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.8 }}
-                className="glass-card block mx-auto max-w-3xl p-8 rounded-xl shadow-lg cursor-pointer select-none"
-              >
-                <h3 className="text-2xl font-semibold mb-4" style={{ color: colors.primary }}>
-                  {projects[currentProject].title}
-                </h3>
-                <p className="text-gray-700 dark:text-gray-300 text-lg mb-4">
-                  {projects[currentProject].description}
-                </p>
-
-                <div className="flex justify-center gap-6">
-                  <a
-                    href={projects[currentProject].live}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-                    style={{ color: colors.primary }}
-                    title="View Live Demo"
-                  >
-                    Live Demo
-                  </a>
-                  <a
-                    href={projects[currentProject].link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-                    style={{ color: colors.primary }}
-                    title="View GitHub Repository"
-                  >
-                    GitHub
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="flex justify-center gap-4 mt-4">
-              {projects.map((_, idx) => (
-                <button
-                  key={idx}
-                  aria-label={`Go to project ${idx + 1}`}
-                  className={`w-4 h-4 rounded-full ${
-                    idx === currentProject ? `bg-[var(--color-primary)]` : "bg-gray-400"
-                  } transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2`}
-                  onClick={() => setCurrentProject(idx)}
-                  style={{ backgroundColor: idx === currentProject ? colors.primary : undefined }}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {projects.map((p, idx) => (
+                <TiltCard key={p.title} className="glass-card rounded-2xl p-7 text-left">
+                  <h3 className="text-2xl font-semibold mb-3" style={{ color: colors.primary }}>{p.title}</h3>
+                  <p className="text-gray-700 dark:text-gray-300 mb-5">{p.description}</p>
+                  <div className="flex flex-wrap gap-4">
+                    {p.live && (
+                      <a href={p.live} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg border border-[var(--color-primary)]/50 hover:bg-[var(--color-primary)] hover:text-white transition" title="View Live Demo">
+                        Live Demo ↗
+                      </a>
+                    )}
+                    <a href={p.link} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg border border-[var(--color-primary)]/50 hover:bg-[var(--color-primary)] hover:text-white transition" title="View GitHub Repository">
+                      GitHub ↗
+                    </a>
+                  </div>
+                </TiltCard>
               ))}
             </div>
           </SectionReveal>
 
-          {/* Contact */}
+          {/* CONTACT */}
           <SectionReveal id="contact" colors={colors} title="Contact Me">
-            <form
-              ref={formRef}
-              onSubmit={sendEmail}
-              className="space-y-6 text-left"
-              aria-label="Contact form"
-            >
-              <input
-                type="text"
-                name="user_name"
-                placeholder="Your Name"
-                required
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
-                style={{ borderColor: colors.primary }}
-              />
-              <input
-                type="email"
-                name="user_email"
-                placeholder="Your Email"
-                required
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition"
-                style={{ borderColor: colors.primary }}
-              />
-              <textarea
-                name="message"
-                placeholder="Your Message"
-                rows={6}
-                required
-                className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition resize-none"
-                style={{ borderColor: colors.primary }}
-              />
-              <button
-                type="submit"
-                className="w-full py-3 text-white rounded-lg transition flex justify-center items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
-                style={{ backgroundColor: colors.primary }}
-                disabled={sendingEmail}
-                title={sendingEmail ? "Sending message..." : "Send Message"}
-              >
+            <form ref={formRef} onSubmit={sendEmail} className="space-y-6 text-left" aria-label="Contact form">
+              <input type="text" name="user_name" placeholder="Your Name" required className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition" style={{ borderColor: colors.primary }} />
+              <input type="email" name="user_email" placeholder="Your Email" required className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition" style={{ borderColor: colors.primary }} />
+              <textarea name="message" placeholder="Your Message" rows={6} required className="w-full p-3 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none transition resize-none" style={{ borderColor: colors.primary }} />
+              <button type="submit" className="w-full py-3 text-white rounded-lg transition flex justify-center items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50" style={{ backgroundColor: colors.primary }} disabled={sendingEmail} title={sendingEmail ? "Sending message..." : "Send Message"}>
                 {sendingEmail && (
-                  <svg
-                    className="animate-spin h-5 w-5 mr-2 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
+                  <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                   </svg>
                 )}
                 <span>{sendingEmail ? "Sending..." : "Send Message"}</span>
               </button>
             </form>
             {contactStatus === "SUCCESS" && (
-              <p className="mt-4 text-green-500 font-semibold" role="alert">
-                Message sent successfully!
-              </p>
+              <p className="mt-4 text-green-500 font-semibold" role="alert">Message sent successfully!</p>
             )}
             {contactStatus === "FAILED" && (
-              <p className="mt-4 text-red-500 font-semibold" role="alert">
-                Oops! Something went wrong. Please try again.
-              </p>
+              <p className="mt-4 text-red-500 font-semibold" role="alert">Oops! Something went wrong. Please try again.</p>
             )}
           </SectionReveal>
         </main>
 
-        <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40">
+        {/* FOOTER */}
+        <footer className="fixed bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-900/80 border-t border-gray-300 dark:border-gray-800 flex justify-between items-center px-6 py-2 text-sm text-gray-700 dark:text-gray-300 select-none z-40 backdrop-blur">
           <div>© {new Date().getFullYear()} Meet Gojiya. All rights reserved.</div>
           <div className="flex space-x-6">
-            <a
-              href="https://github.com/meetgojiya98"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="GitHub"
-              className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-              style={{ color: colors.primary }}
-              title="GitHub Profile"
-            >
+            <a href="https://github.com/meetgojiya98" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2" style={{ color: colors.primary }} title="GitHub Profile">
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 0C5.37 0 0 5.373 0 12a12 12 0 008.207 11.385c.6.11.82-.26.82-.577v-2.022c-3.338.725-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.744.083-.729.083-.729 1.205.086 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.996.108-.775.42-1.305.763-1.605-2.665-.3-5.466-1.333-5.466-5.933 0-1.312.467-2.38 1.235-3.22-.123-.303-.535-1.522.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 016.003 0c2.29-1.553 3.296-1.23 3.296-1.23.654 1.654.243 2.873.12 3.176.77.84 1.232 1.91 1.232 3.22 0 4.61-2.807 5.63-5.48 5.922.43.37.815 1.102.815 2.222v3.293c0 .32.22.694.825.576A12 12 0 0024 12c0-6.627-5.373-12-12-12z" />
               </svg>
             </a>
-            <a
-              href="https://www.linkedin.com/in/meet-gojiya/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-              className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-              style={{ color: colors.primary }}
-              title="LinkedIn Profile"
-            >
+            <a href="https://www.linkedin.com/in/meet-gojiya/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-current transition focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2" style={{ color: colors.primary }} title="LinkedIn Profile">
               <svg fill="currentColor" className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.028-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.942v5.664H9.354V9h3.415v1.561h.047c.476-.9 1.637-1.848 3.372-1.848 3.604 0 4.27 2.372 4.27 5.455v6.284zM5.337 7.433c-1.145 0-2.073-.928-2.073-2.073 0-1.146.928-2.073 2.073-2.073s2.073.927 2.073 2.073c0 1.145-.928 2.073-2.073 2.073zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.224.792 24 1.771 24h20.451c.98 0 1.778-.776 1.778-1.729V1.729C24 .774 23.205 0 22.225 0z" />
               </svg>
@@ -829,31 +821,10 @@ export default function App() {
           </div>
         </footer>
 
-        <a
-          href="https://drive.google.com/file/d/17XX80PFS8ga66W_fNSaoY-iGfgna8qth/view?usp=sharing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50"
-          title="Download Resume"
-          download
-          style={{ backgroundColor: colors.primary }}
-          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)}
-          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0 0l-4-4m4 4l4-4M12 4v8"
-            />
+        {/* RESUME FLOATING BUTTON */}
+        <a href="https://drive.google.com/file/d/17XX80PFS8ga66W_fNSaoY-iGfgna8qth/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="fixed bottom-20 right-6 z-50 text-white px-5 py-3 rounded-full shadow-lg transition flex items-center space-x-2 select-none focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-opacity-50" title="Download Resume" download style={{ backgroundColor: colors.primary }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = colors.primaryDark)} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = colors.primary)}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0 0l-4-4m4 4l4-4M12 4v8" />
           </svg>
           <span>Resume</span>
         </a>
