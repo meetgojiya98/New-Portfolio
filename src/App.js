@@ -412,7 +412,7 @@ export default function App() {
     {
       title: "MapleLoom",
       description:
-        "StockVision is a responsive web app that predicts future stock prices using real market data. It features interactive charts, multiple ticker support, dark mode, and lets users save favorite stocks for easy access.",
+        "A precise, private RAG interface powered by Ollama, Qdrant, and Meilisearch. Zero third-party calls (fully offline), source-anchored answers, and a minimal-latency UI.",
       link: "https://github.com/meetgojiya98/MapleLoom",
     }
   ];
