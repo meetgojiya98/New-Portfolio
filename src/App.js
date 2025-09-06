@@ -414,6 +414,12 @@ export default function App() {
       description:
         "A precise, private RAG interface powered by Ollama, Qdrant, and Meilisearch. Zero third-party calls (fully offline), source-anchored answers, and a minimal-latency UI.",
       link: "https://github.com/meetgojiya98/MapleLoom",
+    },
+    {
+      title: "PDF Copilot",
+      description:
+        "PDF Copilot — a local, privacy-first AI for PDFs. Upload files and get fast, cited answers with hybrid search, auto-OCR, and streaming—powered by Ollama + SQLite, no API keys needed.",
+      link: "https://github.com/meetgojiya98/PDF-Copilot",
     }
   ];
 
