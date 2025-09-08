@@ -420,6 +420,13 @@ export default function App() {
       description:
         "PDF Copilot — a local, privacy-first AI for PDFs. Upload files and get fast, cited answers with hybrid search, auto-OCR, and streaming—powered by Ollama + SQLite, no API keys needed.",
       link: "https://github.com/meetgojiya98/PDF-Copilot",
+    },
+    {
+      title: "PDF Redactor",
+      description:
+        "PDF PII Redactor is a mobile-friendly app that detects and permanently removes PII in PDFs and scanned photos (OCR). It supports batch drag-drop, type filters, partial masks, and exports a redacted PDF plus an audit log—with a simple API/CLI.",
+      link: "https://github.com/meetgojiya98/PDF-Redactor",
+      live: "https://pdf-redactor-bay.vercel.app/",
     }
   ];
 
