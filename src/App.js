@@ -427,6 +427,13 @@ export default function App() {
         "PDF PII Redactor is a mobile-friendly app that detects and permanently removes PII in PDFs and scanned photos (OCR). It supports batch drag-drop, type filters, partial masks, and exports a redacted PDF plus an audit log—with a simple API/CLI.",
       link: "https://github.com/meetgojiya98/PDF-Redactor",
       live: "https://pdf-redactor-bay.vercel.app/",
+    },
+    {
+      title: "PDF Vault",
+      description:
+        "Merge, split, sign, redact, and compress PDFs entirely in your browser. No uploads. No accounts. Complete privacy.",
+      link: "https://github.com/meetgojiya98/PDF-Vault",
+      live: "https://pdf-vault-lemon.vercel.app/",
     }
   ];
 
