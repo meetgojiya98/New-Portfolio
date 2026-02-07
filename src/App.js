@@ -434,6 +434,13 @@ export default function App() {
         "Merge, split, sign, redact, and compress PDFs entirely in your browser. No uploads. No accounts. Complete privacy.",
       link: "https://github.com/meetgojiya98/PDF-Vault",
       live: "https://pdf-vault-lemon.vercel.app/",
+    },
+    {
+      title: "Climb",
+      description:
+        "AI-powered career platform that tailors resumes and cover letters from job postings, tracks applications, and surfaces salary insights so users can land better roles faster.",
+      link: "https://github.com/meetgojiya98/Climb",
+      live: "https://climb-wheat.vercel.app/",
     }
   ];
 
