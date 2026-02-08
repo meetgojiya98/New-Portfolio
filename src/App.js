@@ -441,6 +441,13 @@ export default function App() {
         "AI-powered career platform that tailors resumes and cover letters from job postings, tracks applications, and surfaces salary insights so users can land better roles faster.",
       link: "https://github.com/meetgojiya98/Climb",
       live: "https://climb-wheat.vercel.app/",
+    },
+    {
+      title: "Reframe",
+      description:
+        "AI-powered career platform that tailors resumes and cover letters from job postings, tracks applications, and surfaces salary insights so users can land better roles faster.",
+      link: "https://github.com/meetgojiya98/Reframe",
+      live: "https://reframe-tawny.vercel.app/",
     }
   ];
 
