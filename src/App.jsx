@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import "./App.css";
 
@@ -44,12 +44,36 @@ const projects = [
     live: "https://reframe-tawny.vercel.app/",
   },
   {
+    title: "Climb",
+    description:
+      "Career acceleration platform that generates role-specific resumes and cover letters, tracks applications, and surfaces salary signals.",
+    stack: ["AI Workflows", "Resume AI", "Analytics"],
+    repo: "https://github.com/meetgojiya98/Climb",
+    live: "https://climb-wheat.vercel.app/",
+  },
+  {
     title: "Stock Market Copilot",
     description:
       "Research cockpit for investors with live data, sentiment signals, and explainable AI summaries delivered through a fast, responsive interface.",
     stack: ["React", "FastAPI", "AI Insights"],
     repo: "https://github.com/meetgojiya98/Stock-Market-Copilot",
     live: "https://stock-market-copilot.vercel.app/",
+  },
+  {
+    title: "Stock Sentiment Dashboard",
+    description:
+      "Real-time dashboard aggregating market sentiment, trending tickers, latest news, and Reddit signals to track market mood.",
+    stack: ["React", "Sentiment NLP", "Data Viz"],
+    repo: "https://github.com/meetgojiya98/Stock-Sentiment-Dashboard",
+    live: "https://meetgojiya98.github.io/stock-sentiment-frontend/",
+  },
+  {
+    title: "StockVision",
+    description:
+      "Responsive forecasting app that predicts stock movements with historical market data, interactive charts, and watchlist support.",
+    stack: ["React", "Forecasting", "Charts"],
+    repo: "https://github.com/meetgojiya98/StockVision",
+    live: "https://stock-vision-five.vercel.app/",
   },
   {
     title: "MapleLoom",
@@ -73,6 +97,13 @@ const projects = [
     stack: ["React", "Web APIs", "Privacy-first"],
     repo: "https://github.com/meetgojiya98/PDF-Vault",
     live: "https://pdf-vault-lemon.vercel.app/",
+  },
+  {
+    title: "PDF Copilot",
+    description:
+      "Local-first PDF assistant that answers questions with cited passages using hybrid retrieval, OCR fallback, and streaming responses.",
+    stack: ["RAG", "SQLite", "Ollama"],
+    repo: "https://github.com/meetgojiya98/PDF-Copilot",
   },
 ];
 
@@ -98,11 +129,62 @@ function scrollToSection(id) {
   window.scrollTo({ top, behavior: "smooth" });
 }
 
+function DynamicBackdrop() {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, idx) => ({
+        id: idx,
+        left: 6 + Math.random() * 88,
+        top: 4 + Math.random() * 90,
+        size: 6 + Math.random() * 18,
+        driftX: -30 + Math.random() * 60,
+        driftY: -40 + Math.random() * 80,
+        duration: 8 + Math.random() * 12,
+        delay: Math.random() * 4,
+        opacity: 0.16 + Math.random() * 0.3,
+      })),
+    []
+  );
+
+  return (
+    <div className="dynamic-backdrop" aria-hidden="true">
+      <div className="mesh-layer mesh-layer--one" />
+      <div className="mesh-layer mesh-layer--two" />
+      <div className="scan-lines" />
+      {particles.map((particle) => (
+        <motion.span
+          key={particle.id}
+          className="float-particle"
+          style={{
+            left: `${particle.left}%`,
+            top: `${particle.top}%`,
+            width: particle.size,
+            height: particle.size,
+            opacity: particle.opacity,
+          }}
+          animate={{
+            x: [0, particle.driftX, particle.driftX * -0.45, 0],
+            y: [0, particle.driftY, particle.driftY * -0.5, 0],
+            scale: [1, 1.16, 0.9, 1],
+          }}
+          transition={{
+            duration: particle.duration,
+            delay: particle.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("portfolio-theme");
     return savedTheme === "dark" ? "dark" : "light";
   });
+  const [menuOpen, setMenuOpen] = useState(false);
   const year = new Date().getFullYear();
 
   useEffect(() => {
@@ -114,8 +196,14 @@ export default function App() {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
+  const handleNavClick = (id) => {
+    scrollToSection(id);
+    setMenuOpen(false);
+  };
+
   return (
     <div className="portfolio-shell">
+      <DynamicBackdrop />
       <div className="backdrop-orb backdrop-orb--a" aria-hidden="true" />
       <div className="backdrop-orb backdrop-orb--b" aria-hidden="true" />
       <div className="backdrop-orb backdrop-orb--c" aria-hidden="true" />
@@ -124,14 +212,23 @@ export default function App() {
         <button className="brand-mark" onClick={() => scrollToSection("hero")}>
           MG
         </button>
-        <nav className="header-nav" aria-label="Primary">
+        <nav className={`header-nav ${menuOpen ? "is-open" : ""}`} aria-label="Primary">
           {navItems.map((item) => (
-            <button key={item.id} onClick={() => scrollToSection(item.id)}>
+            <button key={item.id} onClick={() => handleNavClick(item.id)}>
               {item.label}
             </button>
           ))}
         </nav>
         <div className="header-cta">
+          <button
+            type="button"
+            className="menu-toggle"
+            onClick={() => setMenuOpen((prevMenuState) => !prevMenuState)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? "Close" : "Menu"}
+          </button>
           <button
             type="button"
             className="theme-toggle"
@@ -263,8 +360,8 @@ export default function App() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
         >
-          <div className="section-label">Selected Work</div>
-          <h2>Selected products with high leverage technical outcomes.</h2>
+          <div className="section-label">All Work</div>
+          <h2>A complete view of products I have built and shipped.</h2>
           <motion.div
             className="project-grid"
             variants={staggerChildren}
