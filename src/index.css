@@ -1,3 +1,51 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  --ink: #111827;
+  --ink-soft: #475569;
+  --accent: #0f766e;
+  --accent-strong: #0f5f5a;
+  --accent-2: #f97316;
+  --stroke: rgba(15, 23, 42, 0.12);
+  --stroke-strong: rgba(15, 23, 42, 0.2);
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --soft-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+  --surface: rgba(255, 255, 255, 0.8);
+  --surface-solid: rgba(255, 255, 255, 0.94);
+  --surface-soft: rgba(248, 252, 252, 0.78);
+  --chip-bg: #ecf3f2;
+  --chip-text: #334155;
+  --footer-text: #5b6472;
+  --bg-spot-a: rgba(45, 212, 191, 0.14);
+  --bg-spot-b: rgba(249, 115, 22, 0.11);
+  --bg-grad-1: #f8f4ea;
+  --bg-grad-2: #f4f8f7;
+  --bg-grad-3: #fffdf8;
+}
+
+:root[data-theme="dark"] {
+  --ink: #e5ebf5;
+  --ink-soft: #b9c3d2;
+  --accent: #14b8a6;
+  --accent-strong: #5eead4;
+  --accent-2: #fb923c;
+  --stroke: rgba(148, 163, 184, 0.24);
+  --stroke-strong: rgba(148, 163, 184, 0.38);
+  --soft-shadow: 0 22px 44px rgba(2, 6, 23, 0.45);
+  --surface: rgba(10, 17, 34, 0.72);
+  --surface-solid: rgba(10, 17, 34, 0.9);
+  --surface-soft: rgba(15, 25, 45, 0.74);
+  --chip-bg: rgba(148, 163, 184, 0.14);
+  --chip-text: #d1d9e6;
+  --footer-text: #96a3b8;
+  --bg-spot-a: rgba(20, 184, 166, 0.2);
+  --bg-spot-b: rgba(251, 146, 60, 0.15);
+  --bg-grad-1: #070d1d;
+  --bg-grad-2: #0b1427;
+  --bg-grad-3: #10182b;
+}
+
 *,
 *::before,
 *::after {
@@ -10,7 +58,36 @@ body,
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--ink);
+  font-family: "Space Grotesk", "Trebuchet MS", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 20% 18%, var(--bg-spot-a), transparent 45%),
+    radial-gradient(circle at 86% 11%, var(--bg-spot-b), transparent 42%),
+    linear-gradient(160deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 52%, var(--bg-grad-3) 100%);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
 }
