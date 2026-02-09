@@ -65,7 +65,7 @@ const projects = [
       "Real-time dashboard aggregating market sentiment, trending tickers, latest news, and Reddit signals to track market mood.",
     stack: ["React", "Sentiment NLP", "Data Viz"],
     repo: "https://github.com/meetgojiya98/Stock-Sentiment-Dashboard",
-    live: "https://meetgojiya98.github.io/stock-sentiment-frontend/",
+    live: "https://meetgojiya98.github.io/Stock-Sentiment-Dashboard/",
   },
   {
     title: "StockVision",
