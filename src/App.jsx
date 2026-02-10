@@ -38,7 +38,7 @@ const projects = [
   {
     title: "Reframe",
     description:
-      "AI-native career platform that transforms job posts into tailored resumes and cover letters with application tracking and personalized guidance.",
+      "AI powered privacy-first CBT-inspired self-coaching web app.",
     stack: ["React", "LLM Workflows", "Product UX"],
     repo: "https://github.com/meetgojiya98/Reframe",
     live: "https://reframe-tawny.vercel.app/",
