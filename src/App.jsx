@@ -39,7 +39,7 @@ const projects = [
     title: "Reframe",
     description:
       "AI powered privacy-first CBT-inspired self-coaching web app.",
-    stack: ["React", "LLM Workflows", "Product UX"],
+    stack: ["Next.js", "LLM Workflows", "Product UX"],
     repo: "https://github.com/meetgojiya98/Reframe",
     live: "https://reframe-tawny.vercel.app/",
   },
