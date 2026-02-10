@@ -240,7 +240,7 @@ export default function App() {
           </button>
           <a
             className="resume-link"
-            href="https://drive.google.com/file/d/17XX80PFS8ga66W_fNSaoY-iGfgna8qth/view?usp=sharing"
+            href="https://drive.google.com/file/d/15gTSqEa7rEuCcxXnsYserv56c3scs9tP/view?usp=sharing"
             target="_blank"
             rel="noreferrer"
           >
